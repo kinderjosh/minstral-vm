@@ -1,0 +1,132 @@
+; program that reads two integers and an operator from the user,
+; calculates and prints the result
+
+a: dat 0 ; left number
+b: dat 0 ; right number
+op: dat 0 ; operator
+result: dat 0 ; result
+
+; ask for the first number
+prc 'a'
+prc ':'
+prc ' '
+rdi a
+
+; ask for the operator
+prc 'o'
+prc 'p'
+prc ':'
+prc ' '
+rdc op
+
+; ask for the second number
+prc 'b'
+prc ':'
+prc ' '
+rdi b
+
+; check the operator and calculate the result
+lda op
+sub '+'
+brz add_op
+lda op
+sub '-'
+brz sub_op
+lda op
+sub '*'
+brz mul_op
+lda op
+sub '/'
+brz div_op
+lda op
+sub '%'
+brz mod_op
+
+; unknown operator
+prc 'u'
+prc 'n'
+prc 'k'
+prc 'n'
+prc 'o'
+prc 'w'
+prc 'n'
+prc ' '
+prc 'o'
+prc 'p'
+prc 'e'
+prc 'r'
+prc 'a'
+prc 't'
+prc 'o'
+prc 'r'
+prc '\n'
+hlt
+
+; result = a + b
+add_op:
+lda a
+add b
+sta result
+bra done
+
+; result = a - b
+sub_op:
+lda a
+sub b
+sta result
+bra done
+
+; result = a * b
+mul_op:
+lda a
+mul b
+sta result
+bra done
+
+; result = a / b
+div_op:
+; check for division by 0
+lda b
+brz div_by_zero
+
+; we're good for division
+lda a
+div b
+sta result
+bra done
+
+; result = a % b
+mod_op:
+; check for division by 0
+lda b
+brz div_by_zero
+
+; we're good for division
+lda a
+mod b
+sta result
+bra done
+
+; don't want a floating point exception
+div_by_zero:
+prc '0'
+prc ' '
+prc 'd'
+prc 'i'
+prc 'v'
+prc ' '
+prc 'e'
+prc 'r'
+prc 'r'
+prc 'o'
+prc 'r'
+prc '\n'
+hlt
+
+; print the result and stop
+done:
+prc '='
+prc ' '
+pri result
+prc '\n'
+hlt

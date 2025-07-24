@@ -1,0 +1,6 @@
+; simple program that prints "Hi"
+
+prc 'H' ; print character H
+prc 'i' ; print character i
+prc '\n' ; print a new line
+hlt ; stop execution

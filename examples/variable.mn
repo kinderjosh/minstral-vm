@@ -1,0 +1,14 @@
+; program to create a variable with the value 0,
+; print it, reassign it to 5 and print it again
+
+x: dat 0 ; x = 0
+
+pri x ; print x
+prc '\n' ; print a new line
+
+lda 5 ; load 5
+sta x ; store into x
+pri x ; print x
+prc '\n' ; print a new line
+
+hlt ; stop execution
