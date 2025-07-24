@@ -99,6 +99,10 @@ $ ./monovm run examples/hi.mn
 Hi
 ```
 
+## Syntax Highlighting
+
+Syntax highlighting for VSCode is available in the [editor](./editor/) directory in the form of a VSIX file.
+
 ## Documentation
 
 Wiki coming soon.
