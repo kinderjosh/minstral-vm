@@ -105,7 +105,7 @@ Syntax highlighting for VSCode is available in the [editor](./editor/) directory
 
 ## Documentation
 
-Wiki coming soon.
+Wiki in progress.
 
 ## License
 
