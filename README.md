@@ -39,7 +39,7 @@ Use the ```asm``` command to convert an assembly file to a machine code file.
 
 > [examples/hi.mn](./examples/hi.mn):
 
-```x86asm
+```asm
 ; simple program that prints "Hi"
 
 prc 'H' ; print character H
@@ -56,7 +56,7 @@ $ ./monovm asm examples/hi.mn
 
 a.out:
 
-```x86asm
+```asm
 101 1001000 101 1101001 101 1010 1 0
 ```
 
@@ -72,7 +72,7 @@ $ ./monovm dis a.out
 
 a.dis.mn:
 
-```x86asm
+```asm
 prc 72
 prc 105
 prc 10
