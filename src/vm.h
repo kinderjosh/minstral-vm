@@ -4,8 +4,9 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define KiB(k) (1024 * k)
-#define MEMORY_CAP KiB(8)
+// 1024 available slots, * 8 due to being int64_t,
+// * 2 due to 2 separate memories, so really it;s 16KiB.
+#define MEMORY_CAP 1024
 
 typedef enum {
     NOP,
