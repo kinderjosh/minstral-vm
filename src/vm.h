@@ -5,7 +5,7 @@
 #include <stdbool.h>
 
 // 1024 available slots, * 8 due to being int64_t,
-// * 2 due to 2 separate memories, so really it;s 16KiB.
+// * 2 due to 2 separate memories, so really it's 16KiB.
 #define MEMORY_CAP 1024
 
 typedef enum {
