@@ -9,8 +9,7 @@
 
 VM *create_vm() {
     VM *vm = malloc(sizeof(VM));
-    vm->acc = vm->pc = vm->cir = vm->mdr = vm->op_count = vm->freg = 0;
-    vm->sreg = NULL;
+    vm->acc = vm->pc = vm->cir = vm->mdr = vm->op_count = 0;
 
     memset(vm->instructions, NOP, MEMORY_CAP - 1);
     memset(vm->data, NOP, MEMORY_CAP - 1);
