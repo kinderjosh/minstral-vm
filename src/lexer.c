@@ -82,13 +82,16 @@ static Token create_and_step(Lexer *lex, TokenType type, char *value) {
     return tok;
 }
 
-static void skip_comment(Lexer *lex) {
+static Token skip_comment(Lexer *lex) {
     step(lex);
 
     while (lex->cur != '\0' && lex->cur != '\n')
         step(lex);
 
-    step(lex);
+    if (lex->cur == '\n')
+        return create_and_step(lex, TOK_EOL, "\n");
+
+    return create_token(TOK_EOF, mystrdup("eof"), lex->ln, lex->col);
 }
 
 static Token lex_id(Lexer *lex) {
@@ -397,10 +400,9 @@ Token lex_next_token(Lexer *lex) {
 
     if (lex->cur == '\n')
         return create_and_step(lex, TOK_EOL, "\n");
-    else if (lex->cur == ';') {
-        skip_comment(lex);
-        return lex_next_token(lex);
-    } else if (isalpha(lex->cur) || lex->cur == '_')
+    else if (lex->cur == ';')
+        return skip_comment(lex);
+    else if (isalpha(lex->cur) || lex->cur == '_')
         return lex_id(lex);
     else if (isdigit(lex->cur) || (lex->cur == '-' && isdigit(peek(lex, 1))))
         return lex_digit(lex);

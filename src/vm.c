@@ -9,9 +9,12 @@
 
 VM *create_vm() {
     VM *vm = malloc(sizeof(VM));
-    vm->acc = vm->pc = vm->cir = vm->mdr = vm->op_count = 0;
+    vm->acc = vm->pc = vm->cir = vm->mdr = vm->op_count = vm->freg = 0;
+    vm->sreg = NULL;
+
     memset(vm->instructions, NOP, MEMORY_CAP - 1);
     memset(vm->data, NOP, MEMORY_CAP - 1);
+
     vm->running = false;
     return vm;
 }
@@ -184,6 +187,18 @@ static void execute(VM *vm) {
             vm->data[vm->mdr] = atoi(buffer);
             break;
         }
+        case REFM:
+            vm->acc = vm->mdr;
+            break;
+        case LDDA:
+            vm->acc = vm->data[vm->acc];
+            break;
+        case LDDM:
+            vm->acc = vm->data[vm->data[vm->mdr]];
+            break;
+        case STDM:
+            vm->data[vm->data[vm->mdr]] = vm->acc;
+            break;
         default:
             fprintf(stderr, "vm: error: undefined instruction %" PRIu64 "\n", (u64)vm->cir);
             kill(vm);
@@ -253,6 +268,10 @@ char *opcode_to_string(Opcode opcode) {
         case RDCM: return "rdc";
         case RDIA:
         case RDIM: return "rdi";
+        case REFM: return "ref";
+        case LDDA:
+        case LDDM: return "ldd";
+        case STDM: return "std";
         default: break;
     }
 

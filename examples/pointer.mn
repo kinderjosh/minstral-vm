@@ -1,0 +1,23 @@
+data: dat 0 ; data value 0
+ptr: dat 0 ; pointer to data
+
+pri data ; print data
+prc '\n' ; print new line
+
+ref data ; reference data
+sta ptr ; store the pointer into ptr
+
+lda 5 ; load the new value
+std ptr ; store the new value into the dereferenced pointer, which is data
+
+pri data ; print updated data
+prc '\n' ; print new line
+
+lda 10 ; load second new value
+sta data ; store it into data
+
+ldd ptr ; load the dereferenced value of the pointer
+pri ; print it
+prc '\n' ; print new line
+
+hlt ; stop execution

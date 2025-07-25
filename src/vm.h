@@ -49,7 +49,11 @@ typedef enum {
     RDCA,
     RDCM,
     RDIA,
-    RDIM
+    RDIM,
+    REFM,
+    LDDA,
+    LDDM,
+    STDM
 } Opcode;
 
 typedef int64_t i64;
@@ -65,6 +69,10 @@ typedef struct {
     i64 data[MEMORY_CAP];
     u64 op_count;
     bool running;
+
+    // Extra registers for string and float handling.
+    char *sreg;
+    double freg;
 } VM;
 
 VM *create_vm();

@@ -283,6 +283,21 @@ Op parse_rd(Parser *prs, char *instr) {
     return (Op){ .opcode = opcode, .operand = prs->tok->type == TOK_EOL ? 0 : parse_label_operand(prs) };
 }
 
+Op parse_ref(Parser *prs) {
+    return (Op){ .opcode = REFM, .operand = parse_label_operand(prs) };
+}
+
+Op parse_ldd(Parser *prs) {
+    if (prs->tok->type == TOK_EOL)
+        return (Op){ .opcode = LDDA, .operand = 0 };
+
+    return (Op){ .opcode = LDDM, .operand = parse_label_operand(prs) };
+}
+
+Op parse_std(Parser *prs) {
+    return (Op){ .opcode = STDM, .operand = parse_label_operand(prs) };
+}
+
 Op parse_id(Parser *prs) {
     size_t ln = prs->tok->ln;
     size_t col = prs->tok->col;
@@ -345,6 +360,15 @@ Op parse_id(Parser *prs) {
         Op op = parse_rd(prs, id);
         free(id);
         return op;
+    } else if (strcmp(id, "ref") == 0) {
+        free(id);
+        return parse_ref(prs);
+    } else if (strcmp(id, "ldd") == 0) {
+        free(id);
+        return parse_ldd(prs);
+    } else if (strcmp(id, "std") == 0) {
+        free(id);
+        return parse_std(prs);
     }
 
     if (prs->flags & IN_FIRST_PASS) {

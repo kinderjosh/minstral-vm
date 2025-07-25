@@ -138,6 +138,9 @@ int disassemble(char *infile, char *outfile) {
                         case BRN:
                         case RDCM:
                         case RDIM:
+                        case REFM:
+                        case LDDM:
+                        case STDM:
                             sprintf(buffer, "[%" PRId64 "]", operand);
                             break;
                         default:
