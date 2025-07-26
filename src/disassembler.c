@@ -11,6 +11,66 @@
 
 #define BUFFER_CAP 65
 
+void disassemble_op(char *buffer, Opcode opcode, i64 operand) {
+    // This is a DAT.
+    if (opcode == NOP && operand != 0) {
+        strcpy(buffer, "dat");
+        opcode = -1; // Avoid not adding the operand in the switch.
+    } else
+        strcpy(buffer, opcode_to_string(opcode));
+
+    // Not all instructions have operands.
+    switch (opcode) {
+        case NOP:
+        case HLT:
+        case PRCA:
+        case PRIA:
+        case NOT:
+        case NEG:
+        case BRAA: break;
+        default: {
+            strcat(buffer, " ");
+
+            char operand_buffer[BUFFER_CAP];
+
+            // Add [] to indicate a memory access.
+            switch (opcode) {
+                case LDM:
+                case STM:
+                case PRCM:
+                case PRIM:
+                case ADDM:
+                case SUBM:
+                case MULM:
+                case DIVM:
+                case MODM:
+                case SHLM:
+                case SHRM:
+                case ANDM:
+                case ORM:
+                case XORM:
+                case BRA:
+                case BRZ:
+                case BRP:
+                case BRN:
+                case RDCM:
+                case RDIM:
+                case REFM:
+                case LDDM:
+                case STDM:
+                    sprintf(operand_buffer, "[%" PRId64 "]", operand);
+                    break;
+                default:
+                    sprintf(operand_buffer, "%" PRId64, operand);
+                    break;
+            }
+
+            strcat(buffer, operand_buffer);
+            break;
+        }
+    }
+}
+
 int disassemble(char *infile, char *outfile) {
     FILE *f = fopen(infile, "r");
 
@@ -98,59 +158,9 @@ int disassemble(char *infile, char *outfile) {
         }
 
         if (mode == 0) {
-            // This is a DAT.
-            if (opcode == NOP && operand != 0) {
-                fputs("dat", f);
-                opcode = -1; // Avoid not adding the operand in the switch.
-            } else
-                fputs(opcode_to_string(opcode), f);
-
-            // Not all instructions have operands.
-            switch (opcode) {
-                case NOP:
-                case HLT:
-                case PRCA:
-                case PRIA:
-                case NOT:
-                case NEG: break;
-                default:
-                    fputc(' ', f);
-
-                    // Add [] to indicate a memory access.
-                    switch (opcode) {
-                        case LDM:
-                        case STM:
-                        case PRCM:
-                        case PRIM:
-                        case ADDM:
-                        case SUBM:
-                        case MULM:
-                        case DIVM:
-                        case MODM:
-                        case SHLM:
-                        case SHRM:
-                        case ANDM:
-                        case ORM:
-                        case XORM:
-                        case BRA:
-                        case BRZ:
-                        case BRP:
-                        case BRN:
-                        case RDCM:
-                        case RDIM:
-                        case REFM:
-                        case LDDM:
-                        case STDM:
-                            sprintf(buffer, "[%" PRId64 "]", operand);
-                            break;
-                        default:
-                            sprintf(buffer, "%" PRId64, operand);
-                            break;
-                    }
-
-                    fputs(buffer, f);
-                    break;
-            }
+            char op_buffer[BUFFER_CAP * 2 + 2];
+            disassemble_op(op_buffer, opcode, operand);
+            fputs(op_buffer, f);
 
             if (i != len)
                 fputc('\n', f);
