@@ -9,7 +9,7 @@
 
 VM *create_vm() {
     VM *vm = malloc(sizeof(VM));
-    vm->acc = vm->pc = vm->cir = vm->mdr = vm->op_count = 0;
+    vm->acc = vm->pc = vm->mar = vm->cir = vm->mdr = vm->op_count = 0;
 
     memset(vm->instructions, NOP, MEMORY_CAP - 1);
     memset(vm->data, NOP, MEMORY_CAP - 1);
@@ -29,7 +29,7 @@ __attribute__((noreturn)) void kill(VM *vm) {
 }
 
 static void fetch(VM *vm) {
-    if (vm->pc >= MEMORY_CAP) {
+    if ((size_t)vm->pc >= MEMORY_CAP) {
         fprintf(stderr, "vm: error: reached end of memory\n");
         kill(vm);
     }
@@ -144,6 +144,9 @@ static void execute(VM *vm) {
         case BRA:
             vm->pc = vm->mdr;
             break;
+        case BRAA:
+            vm->pc = vm->acc;
+            break;
         case BRZ:
             if (vm->acc == 0)
                 vm->pc = vm->mdr;
@@ -207,11 +210,14 @@ static void execute(VM *vm) {
 void start_vm(VM *vm) {
     vm->running = true;
 
-    while (vm->running) {
-        fetch(vm);
-        decode(vm);
-        execute(vm);
-    }
+    while (vm->running)
+        cycle_vm(vm);
+}
+
+void cycle_vm(VM *vm) {
+    fetch(vm);
+    decode(vm);
+    execute(vm);
 }
 
 void push_op(VM *vm, Opcode opcode, i64 operand) {
@@ -259,6 +265,7 @@ char *opcode_to_string(Opcode opcode) {
         case XORM: return "xor";
         case NOT: return "not";
         case NEG: return "neg";
+        case BRAA:
         case BRA: return "bra";
         case BRZ: return "brz";
         case BRP: return "brp";
