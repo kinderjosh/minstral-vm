@@ -1,1 +1,1 @@
-*.min linguist-language=asm
+examples/*.min linguist-language=asm
