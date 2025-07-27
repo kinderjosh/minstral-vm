@@ -328,7 +328,7 @@ char *opcode_to_string(Opcode opcode) {
         case NEG: return "neg";
         case BRAA:
         case CSR:
-        case BRA: return "bra";
+        case BRA: return "jmp";
         case BRZ: return "brz";
         case BRP: return "brp";
         case BRN: return "brp";

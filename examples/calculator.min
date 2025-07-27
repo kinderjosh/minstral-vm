@@ -57,21 +57,21 @@ op_add
 lda a
 add b
 sta c
-bra done
+jmp done
 
 ; c = a - b
 op_sub
 lda a
 sub b
 sta c
-bra done
+jmp done
 
 ; c = a * b
 op_mul
 lda a
 mul b
 sta c
-bra done
+jmp done
 
 ; c = a / b
 op_div
@@ -83,7 +83,7 @@ brz zero_err
 lda a
 div b
 sta c
-bra done
+jmp done
 
 ; c = a % b
 op_mod
@@ -95,7 +95,7 @@ brz zero_err
 lda a
 mod b
 sta c
-bra done
+jmp done
 
 ; catch a floating point exception
 zero_err

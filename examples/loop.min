@@ -13,7 +13,7 @@ prc 'i'
 prc '\n' ; print new line
 
 dec loops ; decrement the loop counter
-bra start ; next loop
+jmp start ; next loop
 
 ; finished the loops
 done

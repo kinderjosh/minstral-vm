@@ -386,7 +386,7 @@ Op parse_id(Parser *prs) {
         assert_instr_in_text(prs, id, ln, col);
         free(id);
         return OP(NEG, 0);
-    } else if (strcmp(id, "bra") == 0) {
+    } else if (strcmp(id, "jmp") == 0) {
         assert_instr_in_text(prs, id, ln, col);
         free(id);
 
