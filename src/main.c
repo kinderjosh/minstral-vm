@@ -10,10 +10,10 @@
 void help(char *prog) {
     printf("usage: %s <command> [options] <input file>\n"
            "commands:\n"
-           "    asm               assembles a machine code file\n"
-           "    dis               disassembles a machine code file\n"
-           "    exe               executes a machine code file\n"
-           "    run               assembles and executes a machine code file\n"
+           "    asm               assemble a machine code file\n"
+           "    dis               disassemble a machine code file\n"
+           "    exe               execute a machine code file\n"
+           "    run               assemble a machine code file\n"
            "options:\n"
            "    -decimal          output decimal machine code\n"
            "    -linebreak        output linebreaks in machine code\n"
@@ -79,7 +79,7 @@ int main(int argc, char **argv) {
     if (dis) {
         // a.dis.sm probably doesn't already exist to overwrite.
         if (strcmp(outfile, "a.out") == 0)
-            outfile = "a.dis.mn";
+            outfile = "dis.min";
 
         return disassemble(infile, outfile);
     } else if (!exe) {

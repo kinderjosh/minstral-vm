@@ -9,7 +9,9 @@ typedef enum {
     TOK_ID,
     TOK_INT,
     TOK_FLOAT,
-    TOK_COLON
+    TOK_STRING,
+    TOK_COLON,
+    TOK_DOT
 } TokenType;
 
 typedef struct {

@@ -42,9 +42,25 @@ static void decode(VM *vm) {
     vm->mdr = vm->data[vm->mar];
 }
 
+static void set_flags(VM *vm) {
+    if (vm->acc > 0) {
+        vm->cf = true;
+        vm->zf = vm->nf = false;
+    } else if (vm->acc == 0) {
+        vm->zf = true;
+        vm->cf = vm->nf = false;
+    } else {
+        vm->nf = true;
+        vm->cf = vm->zf = false;
+    }
+}
+
+// TODO: This is really gross and we should implement
+// tail calling like tuxifan said.
 static void execute(VM *vm) {
     switch (vm->cir) {
-        case NOP: break;
+        case NOP:
+        case DAT: break;
         case HLT:
             vm->running = false;
             break;
@@ -201,6 +217,38 @@ static void execute(VM *vm) {
         case STDM:
             vm->data[vm->data[vm->mdr]] = vm->acc;
             break;
+        case CMPI:
+            vm->acc = llabs(vm->acc) - llabs(vm->mdr);
+            set_flags(vm);
+            break;
+        case CMPM:
+            vm->acc = llabs(vm->acc) - llabs(vm->data[vm->mdr]);
+            set_flags(vm);
+            break;
+        case BEQ:
+            if (vm->zf)
+                vm->pc = vm->mdr;
+            break;
+        case BNE:
+            if (!vm->zf)
+                vm->pc = vm->mdr;
+            break;
+        case BLT:
+            if (vm->nf)
+                vm->pc = vm->mdr;
+            break;
+        case BLE:
+            if (vm->nf || vm->zf)
+                vm->pc = vm->mdr;
+            break;
+        case BGT:
+            if (vm->cf)
+                vm->pc = vm->mdr;
+            break;
+        case BGE:
+            if (vm->cf || vm->zf)
+                vm->pc = vm->mdr;
+            break;
         default:
             fprintf(stderr, "vm: error: undefined instruction %" PRIu64 "\n", (u64)vm->cir);
             kill(vm);
@@ -278,6 +326,15 @@ char *opcode_to_string(Opcode opcode) {
         case LDDA:
         case LDDM: return "ldd";
         case STDM: return "std";
+        case DAT: return "dat";
+        case CMPI:
+        case CMPM: return "cmp";
+        case BEQ: return "beq";
+        case BNE: return "bne";
+        case BLT: return "blt";
+        case BLE: return "ble";
+        case BGT: return "bgt";
+        case BGE: return "bge";
         default: break;
     }
 

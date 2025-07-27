@@ -12,12 +12,7 @@
 #define BUFFER_CAP 65
 
 void disassemble_op(char *buffer, Opcode opcode, i64 operand) {
-    // This is a DAT.
-    if (opcode == NOP && operand != 0) {
-        strcpy(buffer, "dat");
-        opcode = -1; // Avoid not adding the operand in the switch.
-    } else
-        strcpy(buffer, opcode_to_string(opcode));
+    strcpy(buffer, opcode_to_string(opcode));
 
     // Not all instructions have operands.
     switch (opcode) {
@@ -49,10 +44,6 @@ void disassemble_op(char *buffer, Opcode opcode, i64 operand) {
                 case ANDM:
                 case ORM:
                 case XORM:
-                case BRA:
-                case BRZ:
-                case BRP:
-                case BRN:
                 case RDCM:
                 case RDIM:
                 case REFM:

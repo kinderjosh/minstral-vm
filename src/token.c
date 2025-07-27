@@ -19,7 +19,9 @@ char *tokentype_to_string(TokenType type) {
         case TOK_ID: return "identifier";
         case TOK_INT: return "int";
         case TOK_FLOAT: return "float";
+        case TOK_STRING: return "string";
         case TOK_COLON: return "colon";
+        case TOK_DOT: return "dot";
         default: break;
     }
 

@@ -1,15 +1,9 @@
 #ifndef PARSER_H
 #define PARSER_H
 
-#include "vm.h"
 #include "token.h"
+#include "vm.h"
 #include <stdio.h>
-#include <stdint.h>
-
-typedef struct {
-    Opcode opcode;
-    i64 operand;
-} Op;
 
 typedef struct {
     char *file;
@@ -17,12 +11,12 @@ typedef struct {
     size_t token_count;
     Token *tok;
     size_t pos;
-    unsigned int flags;
 } Parser;
 
 typedef struct {
     Op *ops;
     size_t op_count;
+    size_t op_capacity;
 } Root;
 
 Op parse_stmt(Parser *prs);

@@ -1,0 +1,41 @@
+; program that demonstrates some branching and comparisons
+
+.text
+; check if x < 10
+lda x
+cmp 10
+blt lt_10 ; branch if less than
+
+; check if x <= 5
+lda x
+cmp 5
+ble lt_or_eq_5 ; branch if less than or equal
+
+lt_10
+lt_or_eq_5
+; check if x == 0
+lda x
+brz is_zero
+
+is_zero
+; check if x == y
+lda x
+cmp y
+beq x_eq_y
+
+; check if x is positive
+lda x
+brp is_pos
+
+; or if it's negative
+lda x
+brn is_neg
+
+x_eq_y
+is_pos
+is_neg
+hlt
+
+.data
+x dat 5
+y dat 10

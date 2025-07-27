@@ -1,0 +1,27 @@
+; program that modifies a variable via a pointer
+
+.text
+pri num ; print the original value of num
+prc '\n'
+
+ref num ; create a pointer to num
+sta ptr ; store it into ptr
+
+lda 10 ; load a new value
+std ptr ; store it into the dereferenced location in ptr
+
+pri num ; print the new value of num
+prc '\n'
+
+lda 20
+sta num ; change the value of num
+
+ldd ptr ; load the dereferenced value of ptr
+pri ; print it
+prc '\n'
+
+hlt
+
+.data
+num dat 5
+ptr dat 0

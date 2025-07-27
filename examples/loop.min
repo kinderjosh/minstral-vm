@@ -1,0 +1,27 @@
+; program that prints "Hi" 10 times
+
+.text
+; start of the loop
+start
+; check if we've done all 10 loops
+lda loops ; load the loops
+brz done ; branch if 0
+
+; print Hi
+prc 'H'
+prc 'i'
+prc '\n' ; print new line
+
+; decrement the loop counter
+lda loops
+sub 1
+sta loops
+
+bra start ; next loop
+
+; finished the loops
+done
+hlt
+
+.data
+loops dat 10

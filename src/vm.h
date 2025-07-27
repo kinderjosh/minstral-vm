@@ -56,8 +56,15 @@ typedef enum {
     LDDA,
     LDDM,
     STDM,
-    LDSI,
-    LDSM
+    DAT,
+    CMPI,
+    CMPM,
+    BEQ,
+    BNE,
+    BLT,
+    BLE,
+    BGT,
+    BGE
 } Opcode;
 
 typedef int64_t i64;
@@ -69,11 +76,22 @@ typedef struct {
     i64 mar;
     Opcode cir;
     i64 mdr;
+
     Opcode instructions[MEMORY_CAP];
     i64 data[MEMORY_CAP];
     u64 op_count;
+
+    bool cf;
+    bool zf;
+    bool nf;
+
     bool running;
 } VM;
+
+typedef struct {
+    Opcode opcode;
+    i64 operand;
+} Op;
 
 VM *create_vm();
 void delete_vm(VM *vm);

@@ -1,0 +1,127 @@
+; program that asks for two numbers and an operator,
+; calculates the result and prints it
+
+.text
+; ask for the first number
+prc 'a'
+prc ':'
+prc ' '
+rdi a
+
+; ask for the operator
+prc 'o'
+prc 'p'
+prc ':'
+prc ' '
+rdc op
+
+; ask for the second number
+prc 'b'
+prc ':'
+prc ' '
+rdi b
+
+; parse the operator and calculate the result
+lda op
+cmp '+'
+beq op_add
+
+lda op
+cmp '-'
+beq op_sub
+
+lda op
+cmp '*'
+beq op_mul
+
+lda op
+cmp '/'
+beq op_div
+
+lda op
+cmp '%'
+beq op_mod
+
+; unknown operator
+prc 'b'
+prc 'a'
+prc 'd'
+prc ' '
+prc 'o'
+prc 'p'
+prc '\n'
+hlt
+
+; c = a + b
+op_add
+lda a
+add b
+sta c
+bra done
+
+; c = a - b
+op_sub
+lda a
+sub b
+sta c
+bra done
+
+; c = a * b
+op_mul
+lda a
+mul b
+sta c
+bra done
+
+; c = a / b
+op_div
+; check for divison by 0
+lda b
+brz zero_err
+
+; we're good to divide
+lda a
+div b
+sta c
+bra done
+
+; c = a % b
+op_mod
+; check for divison by 0
+lda b
+brz zero_err
+
+; we're good to divide
+lda a
+mod b
+sta c
+bra done
+
+; catch a floating point exception
+zero_err
+prc 'z'
+prc 'e'
+prc 'r'
+prc 'o'
+prc ' '
+prc 'e'
+prc 'r'
+prc 'r'
+prc 'o'
+prc 'r'
+prc '\n'
+hlt
+
+done
+; print the result
+prc '='
+prc ' '
+pri c
+prc '\n'
+hlt
+
+.data
+a dat 0
+b dat 0
+c dat 0
+op dat 0

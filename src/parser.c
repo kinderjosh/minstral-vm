@@ -1,6 +1,6 @@
 #include "parser.h"
-#include "vm.h"
 #include "token.h"
+#include "vm.h"
 #include "lexer.h"
 #include "utils.h"
 #include <stdio.h>
@@ -9,20 +9,25 @@
 #include <stdbool.h>
 #include <assert.h>
 #include <stdint.h>
-#include <inttypes.h>
 #include <errno.h>
+#include <inttypes.h>
 
-#define NOOP (Op){ .opcode = NOP }
-#define STARTING_TOK_CAP 32 
+#define OP(code, and) (Op){ .opcode = code, .operand = and }
+#define NOOP (Op){ .opcode = NOP, .operand = 0 }
+
+#define STARTING_TOK_CAP 32
 #define STARTING_ROOT_CAP 16
-
-#define IN_FIRST_PASS (0x01)
-
 #define TABLE_SIZE 1000
+
+// Give each unresolved label a unique number so they
+// can be resolved to their correct locations later.
+#define UNRESOLVED_LABEL_LOCATION (-(i64)label_count - 98473492432239434) // Magic number from my ass.
 
 typedef struct {
     char *name;
     i64 value;
+    i64 resolved_value; // After we know where in memory the label is.
+    bool resolved;
     bool used;
     char *file;
     size_t ln;
@@ -31,7 +36,12 @@ typedef struct {
 
 static Label labels[TABLE_SIZE];
 static size_t label_count = 0;
-static size_t op_count = 0;
+
+static bool text_initialized = false;
+static bool data_initialized = false;
+static bool in_text = false;
+
+static Root root;
 
 uint32_t hash_FNV1a(const char *data, size_t size) {
     uint32_t h = 2166136261UL;
@@ -48,7 +58,7 @@ Label *find_label(char *name) {
     return &labels[hash_FNV1a(name, strlen(name))];
 }
 
-void add_label(char *name, i64 value, char *file, size_t ln, size_t col) {
+Label *add_label(char *name, i64 value, char *file, size_t ln, size_t col) {
     Label *label = find_label(name);
 
     if (label->used) {
@@ -57,8 +67,15 @@ void add_label(char *name, i64 value, char *file, size_t ln, size_t col) {
         assert(false);
     }
 
-    *label = (Label){ .name = name, .value = value, .used = true, .file = file, .ln = ln, .col = col };
+    label->name = name;
+    label->value = value;
+    label->resolved = false;
+    label->used = true;
+    label->file = file;
+    label->ln = ln;
+    label->col = col;
     label_count++;
+    return label;
 }
 
 void delete_labels() {
@@ -70,6 +87,7 @@ void delete_labels() {
 
         free(label->name);
         free(label->file);
+        label->used = false;
     }
 }
 
@@ -82,6 +100,7 @@ Parser create_parser(char *file) {
     size_t token_capacity = STARTING_TOK_CAP;
 
     while ((tok = lex_next_token(&lex)).type != TOK_EOF) {
+        // +2, extra +1 for the EOF.
         if (token_count + 2 >= token_capacity) {
             token_capacity *= 2;
             tokens = realloc(tokens, token_capacity * sizeof(Token));
@@ -90,17 +109,10 @@ Parser create_parser(char *file) {
         tokens[token_count++] = tok;
     }
 
-    tokens[token_count++] = tok; // eof
+    tokens[token_count++] = tok;
     delete_lexer(&lex);
 
-    return (Parser){
-        .file = file,
-        .tokens = tokens,
-        .token_count = token_count,
-        .tok = &tokens[0],
-        .pos = 0,
-        .flags = IN_FIRST_PASS
-    };
+    return (Parser){ .file = file, .tokens = tokens, .token_count = token_count, .tok = &tokens[0], .pos = 0 };
 }
 
 void delete_parser(Parser *prs) {
@@ -110,7 +122,7 @@ void delete_parser(Parser *prs) {
     free(prs->tokens);
 }
 
-void eat(Parser *prs, TokenType type) {
+static void eat(Parser *prs, TokenType type) {
     if (type != prs->tok->type) {
         fprintf(stderr, "%s:%zu:%zu: error: found token '%s' when expecting '%s'\n", prs->file, prs->tok->ln, prs->tok->col, tokentype_to_string(prs->tok->type), tokentype_to_string(type));
         inc_errors();
@@ -118,20 +130,6 @@ void eat(Parser *prs, TokenType type) {
 
     if (prs->tok->type != TOK_EOF)
         prs->tok = &prs->tokens[++prs->pos];
-}
-
-void eat_until(Parser *prs, TokenType type) {
-    while (prs->tok->type != TOK_EOF && prs->tok->type != type)
-        eat(prs, prs->tok->type);
-}
-
-Token *peek(Parser *prs, int offset) {
-    if (prs->pos + offset >= prs->token_count)
-        return &prs->tokens[prs->token_count - 1];
-    else if ((int)prs->pos + offset < 1)
-        return &prs->tokens[0];
-        
-    return &prs->tokens[prs->pos + offset];
 }
 
 i64 parse_digit(Parser *prs) {
@@ -153,233 +151,331 @@ i64 parse_digit(Parser *prs) {
     return value;
 }
 
-i64 parse_dat(Parser *prs) {
+Op parse_label_decl(Parser *prs, char *id, size_t ln, size_t col) {
+    // Data label outside of the data section.
+    if (prs->tok->type != TOK_EOL && !data_initialized) {
+        fprintf(stderr, "%s:%zu:%zu: error: defining data label '%s' outside of the data section\n", prs->file, ln, col, id);
+        free(id);
+        return NOOP;
+    } 
+    // Branch label outside of the text section.
+    else if (prs->tok->type == TOK_EOL && !text_initialized) {
+        fprintf(stderr, "%s:%zu:%zu: error: defining branch label '%s' outside of the text section\n", prs->file, ln, col, id);
+        free(id);
+        return NOOP;
+    }
+    // Any label, no sections found.
+    else if (!text_initialized && !data_initialized) {
+        fprintf(stderr, "%s:%zu:%zu: error: defining label '%s' outside of a section\n", prs->file, ln, col, id);
+        free(id);
+        return NOOP;
+    }
+
+    Label *label = find_label(id);
+
+    // Check if this label already exists.
+    if (label->used) {
+        if (label->resolved) {
+            fprintf(stderr, "%s:%zu:%zu: error: redefinition of label '%s'; first defined at %s:%zu:%zu\n", prs->file, ln, col, id, label->file, label->ln, label->col);
+            inc_errors();
+        } else {
+            label->resolved = true;
+            label->resolved_value = root.op_count;
+        }
+
+        if (strcmp(prs->tok->value, "dat") != 0) {
+            free(id);
+            return NOOP;
+        }
+
+        eat(prs, TOK_ID);
+
+        if (prs->tok->type != TOK_INT) {
+            fprintf(stderr, "%s:%zu:%zu: error: expected constant data value for label '%s' but found '%s'\n", prs->file, ln, col, id, tokentype_to_string(prs->tok->type));
+            inc_errors();
+            add_label(id, 0, mystrdup(prs->file), ln, col);
+            return NOOP;
+        }
+
+        free(id);
+        return OP(DAT, parse_digit(prs));
+    }
+
+    // Parse a branch label, only allowed in the text section.
+    if (in_text) {
+        label = add_label(id, root.op_count, mystrdup(prs->file), ln, col);
+        label->resolved = true;
+        label->resolved_value = root.op_count;
+        return NOOP;
+    }
+
+    if (prs->tok->type != TOK_ID) {
+        fprintf(stderr, "%s:%zu:%zu: error: expected DAT following data label '%s' but found '%s'\n", prs->file, ln, col, id, tokentype_to_string(prs->tok->type));
+        inc_errors();
+
+        add_label(id, 0, mystrdup(prs->file), ln, col);
+        return NOOP;
+    } else if (strcmp(prs->tok->value, "dat") != 0) {
+        fprintf(stderr, "%s:%zu:%zu: error: expected DAT following data label '%s' but found '%s'\n", prs->file, ln, col, id, prs->tok->value);
+        inc_errors();
+
+        add_label(id, 0, mystrdup(prs->file), ln, col);
+        return NOOP;
+    }
+
+    eat(prs, TOK_ID);
+
+    if (prs->tok->type != TOK_INT) {
+        fprintf(stderr, "%s:%zu:%zu: error: expected constant data value for label '%s' but found '%s'\n", prs->file, ln, col, id, tokentype_to_string(prs->tok->type));
+        inc_errors();
+        add_label(id, 0, mystrdup(prs->file), ln, col);
+        return NOOP;
+    }
+
+    add_label(id, UNRESOLVED_LABEL_LOCATION, mystrdup(prs->file), ln, col);
+    return OP(DAT, parse_digit(prs));
+}
+
+void assert_instr_in_text(Parser *prs, char *instr, size_t ln, size_t col) {
+    if (in_text)
+        return;
+
+    fprintf(stderr, "%s:%zu:%zu: instruction '%s' outside of the text section\n", prs->file, ln, col, instr);
+    inc_errors();
+}
+
+i64 parse_label(Parser *prs) {
     Label *label = find_label(prs->tok->value);
 
     if (!label->used) {
-        fprintf(stderr, "%s:%zu:%zu: error: undefined label '%s'\n", prs->file, prs->tok->ln, prs->tok->col, prs->tok->value);
-        inc_errors();
+        label = add_label(mystrdup(prs->tok->value), UNRESOLVED_LABEL_LOCATION, mystrdup(prs->file), prs->tok->ln, prs->tok->col);
         eat(prs, TOK_ID);
-        return 0;
+        return label->value;
     }
 
     eat(prs, TOK_ID);
-    return label->value;
+    return label->resolved ? label->resolved_value : label->value;
 }
 
-i64 parse_operand(Parser *prs, bool *out_is_imm) {
-    switch (prs->tok->type) {
-        case TOK_INT:
-            *out_is_imm = true;
-            return parse_digit(prs);
-        case TOK_ID:
-            *out_is_imm = false;
-            return parse_dat(prs);
-        default: break;
-    }
+i64 parse_operand(Parser *prs) {
+    if (prs->tok->type == TOK_INT)
+        return parse_digit(prs);
+    else if (prs->tok->type == TOK_ID)
+        return parse_label(prs);
 
-    fprintf(stderr, "%s:%zu:%zu: error: invalid operand type '%s'\n", prs->file, prs->tok->ln, prs->tok->col, tokentype_to_string(prs->tok->type));
+    fprintf(stderr, "%s:%zu:%zu: error: invalid operand '%s'\n", prs->file, prs->tok->ln, prs->tok->col, tokentype_to_string(prs->tok->type));
     inc_errors();
-
-    eat(prs, prs->tok->type);
-    *out_is_imm = true;
     return 0;
 }
 
-i64 parse_label_operand(Parser *prs) {
-    if (prs->tok->type != TOK_ID) {
-        fprintf(stderr, "%s:%zu:%zu: error: expected label name but found '%s'\n", prs->file, prs->tok->ln, prs->tok->col, tokentype_to_string(prs->tok->type));
-        inc_errors();
-        eat(prs, prs->tok->type);
-        return 0;
-    }
-
-    Label *label = find_label(prs->tok->value);
-
-    if (!label->used & !(prs->flags & IN_FIRST_PASS)) {
-        fprintf(stderr, "%s:%zu:%zu: error: undefined label '%s'\n", prs->file, prs->tok->ln, prs->tok->col, prs->tok->value);
-        inc_errors();
-        eat(prs, TOK_ID);
-        return 0;
-    }
-
-    eat(prs, TOK_ID);
-    return label->value;
-}
-
-Op parse_lda(Parser *prs) {
-    bool is_imm;
-    i64 operand = parse_operand(prs, &is_imm);
-    return (Op){ .opcode = is_imm ? LDI : LDM, operand };
-}
-
-Op parse_sta(Parser *prs) {
-    return (Op){ .opcode = STM, .operand = parse_label_operand(prs) };
-}
-
-Op parse_pr(Parser *prs, bool as_char) {
-    if (prs->tok->type == TOK_EOL)
-        return (Op){ .opcode = as_char ? PRCA : PRIA, 0 };
-    else if (prs->tok->type == TOK_INT)
-        return (Op){ .opcode = as_char ? PRCI : PRII, parse_digit(prs) };
-    
-    return (Op){ .opcode = as_char ? PRCM : PRIM, parse_label_operand(prs) };
-}
-
-Op parse_math(Parser *prs, char *instr) {
-    Opcode opcode;
-
-    if (strcmp(instr, "add") == 0)
-        opcode = prs->tok->type == TOK_INT ? ADDI : ADDM;
-    else if (strcmp(instr, "sub") == 0)
-        opcode = prs->tok->type == TOK_INT ? SUBI : SUBM;
-    else if (strcmp(instr, "mul") == 0)
-        opcode = prs->tok->type == TOK_INT ? MULI : MULM;
-    else if (strcmp(instr, "div") == 0)
-        opcode = prs->tok->type == TOK_INT ? DIVI : DIVM;
-    else if (strcmp(instr, "mod") == 0)
-        opcode = prs->tok->type == TOK_INT ? MODI : MODM;
-    else if (strcmp(instr, "shl") == 0)
-        opcode = prs->tok->type == TOK_INT ? SHLI : SHLM;
-    else if (strcmp(instr, "shr") == 0)
-        opcode = prs->tok->type == TOK_INT ? SHRI : SHRM;
-    else if (strcmp(instr, "and") == 0)
-        opcode = prs->tok->type == TOK_INT ? ANDI : ANDM;
-    else if (strcmp(instr, "or") == 0)
-        opcode = prs->tok->type == TOK_INT ? ORI : ORM;
-    else if (strcmp(instr, "xor") == 0)
-        opcode = prs->tok->type == TOK_INT ? XORI : XORM;
-    else if (strcmp(instr, "not") == 0)
-        return (Op){ .opcode = NOT, .operand = 0 };
-    else
-        return (Op){ .opcode = NEG, .operand = 0 };
-
-    return (Op){ .opcode = opcode, .operand = prs->tok->type == TOK_INT ? parse_digit(prs) : parse_label_operand(prs) };
-}
-
-Op parse_br(Parser *prs, char *instr) {
-    Opcode opcode;
-
-    if (strcmp(instr, "bra") == 0)
-        opcode = BRA;
-    else if (strcmp(instr, "brz") == 0)
-        opcode = BRZ;
-    else if (strcmp(instr, "brp") == 0)
-        opcode = BRP;
-    else
-        opcode = BRN;
-
-    return (Op){ .opcode = opcode, .operand = parse_label_operand(prs) };
-}
-
-Op parse_rd(Parser *prs, char *instr) {
-    Opcode opcode;
-
-    if (strcmp(instr, "rdc") == 0)
-        opcode = prs->tok->type == TOK_EOL ? RDCA : RDCM;
-    else
-        opcode = prs->tok->type == TOK_EOL ? RDIA : RDIM;
-
-    return (Op){ .opcode = opcode, .operand = prs->tok->type == TOK_EOL ? 0 : parse_label_operand(prs) };
-}
-
-Op parse_ref(Parser *prs) {
-    return (Op){ .opcode = REFM, .operand = parse_label_operand(prs) };
-}
-
-Op parse_ldd(Parser *prs) {
-    if (prs->tok->type == TOK_EOL)
-        return (Op){ .opcode = LDDA, .operand = 0 };
-
-    return (Op){ .opcode = LDDM, .operand = parse_label_operand(prs) };
-}
-
-Op parse_std(Parser *prs) {
-    return (Op){ .opcode = STDM, .operand = parse_label_operand(prs) };
-}
-
 Op parse_id(Parser *prs) {
-    size_t ln = prs->tok->ln;
-    size_t col = prs->tok->col;
-    
+    const size_t ln = prs->tok->ln;
+    const size_t col = prs->tok->col;
+
     char *id = mystrdup(prs->tok->value);
     eat(prs, TOK_ID);
-
-    if (prs->tok->type == TOK_COLON) {
-        eat(prs, TOK_COLON);
-
-        Label *label = find_label(id);
-
-        if (label->used && prs->flags & IN_FIRST_PASS) {
-            fprintf(stderr, "%s:%zu:%zu: error: redefinition of label '%s'; first defined at %s:%zu:%zu\n", prs->file, ln, col, id, label->file, label->ln, label->col);
-            inc_errors();
-            free(id);
-        } else if (prs->flags & IN_FIRST_PASS) {
-            add_label(id, op_count, mystrdup(prs->file), ln, col);
-
-            if (strcmp(prs->tok->value, "dat") == 0) {
-                eat(prs, TOK_ID);
-
-                if (prs->tok->type == TOK_INT)
-                    eat(prs, TOK_INT);
-            }
-        } else {
-            free(id);
-
-            if (strcmp(prs->tok->value, "dat") == 0) {
-                eat(prs, TOK_ID);
-
-                if (prs->tok->type == TOK_INT)
-                    return (Op){ .opcode = NOP, .operand = parse_digit(prs) };
-            }
-        }
-
-        return NOOP;
-    } else if (strcmp(id, "hlt") == 0) {
+    
+    // Check for instructions.
+    if (strcmp(id, "hlt") == 0) {
+        assert_instr_in_text(prs, id, ln, col);
         free(id);
-        return (Op){ .opcode = HLT, .operand = 0 };
+        return OP(HLT, 0);
     } else if (strcmp(id, "lda") == 0) {
+        assert_instr_in_text(prs, id, ln, col);
         free(id);
-        return parse_lda(prs);
+        return OP(prs->tok->type == TOK_INT ? LDI : LDM, parse_operand(prs));
     } else if (strcmp(id, "sta") == 0) {
+        assert_instr_in_text(prs, id, ln, col);
         free(id);
-        return parse_sta(prs);
-    } else if (strcmp(id, "prc") == 0 || strcmp(id, "pri") == 0) {
-        Op op = parse_pr(prs, strcmp(id, "prc") == 0);
+        return OP(STM, parse_label(prs));
+    } else if (strcmp(id, "prc") == 0) {
+        assert_instr_in_text(prs, id, ln, col);
         free(id);
-        return op;
-    } else if (strcmp(id, "add") == 0 || strcmp(id, "sub") == 0 || strcmp(id, "mul") == 0 || strcmp(id, "div") == 0 || strcmp(id, "mod") == 0 || strcmp(id, "shl") == 0 || strcmp(id, "or") == 0 || strcmp(id, "xor") == 0 || strcmp(id, "not") == 0 || strcmp(id, "neg") == 0) {
-        Op op = parse_math(prs, id);
+
+        if (prs->tok->type == TOK_EOL || prs->tok->type == TOK_EOF)
+            return OP(PRCA, 0);
+        else if (prs->tok->type == TOK_INT)
+            return OP(PRCI, parse_digit(prs));
+
+        return OP(PRCM, parse_label(prs));
+    } else if (strcmp(id, "pri") == 0) {
+        assert_instr_in_text(prs, id, ln, col);
         free(id);
-        return op;
-    } else if (strcmp(id, "bra") == 0 || strcmp(id, "brz") == 0 || strcmp(id, "brp") == 0 || strcmp(id, "brn") == 0) {
-        Op op = parse_br(prs, id);
+
+        if (prs->tok->type == TOK_EOL || prs->tok->type == TOK_EOF)
+            return OP(PRIA, 0);
+        else if (prs->tok->type == TOK_INT)
+            return OP(PRII, parse_digit(prs));
+
+        return OP(PRIM, parse_label(prs));
+    } else if (strcmp(id, "add") == 0) {
+        assert_instr_in_text(prs, id, ln, col);
         free(id);
-        return op;
-    } else if (strcmp(id, "rdc") == 0 || strcmp(id, "rdi") == 0) {
-        Op op = parse_rd(prs, id);
+        return OP(prs->tok->type == TOK_INT ? ADDI : ADDM, parse_operand(prs));
+    } else if (strcmp(id, "sub") == 0) {
+        assert_instr_in_text(prs, id, ln, col);
         free(id);
-        return op;
+        return OP(prs->tok->type == TOK_INT ? SUBI : SUBM, parse_operand(prs));
+    } else if (strcmp(id, "mul") == 0) {
+        assert_instr_in_text(prs, id, ln, col);
+        free(id);
+        return OP(prs->tok->type == TOK_INT ? MULI : MULM, parse_operand(prs));
+    } else if (strcmp(id, "div") == 0) {
+        assert_instr_in_text(prs, id, ln, col);
+        free(id);
+        return OP(prs->tok->type == TOK_INT ? DIVI : DIVM, parse_operand(prs));
+    } else if (strcmp(id, "mod") == 0) {
+        assert_instr_in_text(prs, id, ln, col);
+        free(id);
+        return OP(prs->tok->type == TOK_INT ? MODI : MODM, parse_operand(prs));
+    } else if (strcmp(id, "shl") == 0) {
+        assert_instr_in_text(prs, id, ln, col);
+        free(id);
+        return OP(prs->tok->type == TOK_INT ? SHLI : SHLM, parse_operand(prs));
+    } else if (strcmp(id, "shr") == 0) {
+        assert_instr_in_text(prs, id, ln, col);
+        free(id);
+        return OP(prs->tok->type == TOK_INT ? SHRI : SHRM, parse_operand(prs));
+    } else if (strcmp(id, "and") == 0) {
+        assert_instr_in_text(prs, id, ln, col);
+        free(id);
+        return OP(prs->tok->type == TOK_INT ? ANDI : ANDM, parse_operand(prs));
+    } else if (strcmp(id, "or") == 0) {
+        assert_instr_in_text(prs, id, ln, col);
+        free(id);
+        return OP(prs->tok->type == TOK_INT ? ORI : ORM, parse_operand(prs));
+    } else if (strcmp(id, "xor") == 0) {
+        assert_instr_in_text(prs, id, ln, col);
+        free(id);
+        return OP(prs->tok->type == TOK_INT ? XORI : XORM, parse_operand(prs));
+    } else if (strcmp(id, "not") == 0) {
+        assert_instr_in_text(prs, id, ln, col);
+        free(id);
+        return OP(NOT, 0);
+    } else if (strcmp(id, "neg") == 0) {
+        assert_instr_in_text(prs, id, ln, col);
+        free(id);
+        return OP(NEG, 0);
+    } else if (strcmp(id, "bra") == 0) {
+        assert_instr_in_text(prs, id, ln, col);
+        free(id);
+
+        if (prs->tok->type == TOK_EOL || prs->tok->type == TOK_EOF)
+            return OP(BRAA, 0);
+
+        return OP(BRA, parse_operand(prs));
+    } else if (strcmp(id, "brz") == 0) {
+        assert_instr_in_text(prs, id, ln, col);
+        free(id);
+        return OP(BRZ, parse_operand(prs));
+    } else if (strcmp(id, "brp") == 0) {
+        assert_instr_in_text(prs, id, ln, col);
+        free(id);
+        return OP(BRP, parse_operand(prs));
+    } else if (strcmp(id, "brn") == 0) {
+        assert_instr_in_text(prs, id, ln, col);
+        free(id);
+        return OP(BRN, parse_operand(prs));
+    } else if (strcmp(id, "rdc") == 0) {
+        assert_instr_in_text(prs, id, ln, col);
+        free(id);
+
+        if (prs->tok->type == TOK_EOL || prs->tok->type == TOK_EOF)
+            return OP(RDCA, 0);
+
+        return OP(RDCM, parse_label(prs));
+    } else if (strcmp(id, "rdi") == 0) {
+        assert_instr_in_text(prs, id, ln, col);
+        free(id);
+
+        if (prs->tok->type == TOK_EOL || prs->tok->type == TOK_EOF)
+            return OP(RDIA, 0);
+
+        return OP(RDIM, parse_label(prs));
     } else if (strcmp(id, "ref") == 0) {
+        assert_instr_in_text(prs, id, ln, col);
         free(id);
-        return parse_ref(prs);
+        return OP(REFM, parse_label(prs));
     } else if (strcmp(id, "ldd") == 0) {
+        assert_instr_in_text(prs, id, ln, col);
         free(id);
-        return parse_ldd(prs);
+
+        if (prs->tok->type == TOK_EOL || prs->tok->type == TOK_EOF)
+            return OP(LDDA, 0);
+
+        return OP(LDDM, parse_label(prs));
     } else if (strcmp(id, "std") == 0) {
+        assert_instr_in_text(prs, id, ln, col);
         free(id);
-        return parse_std(prs);
+        return OP(STDM, parse_label(prs));
+    } else if (strcmp(id, "cmp") == 0) {
+        assert_instr_in_text(prs, id, ln, col);
+        free(id);
+        return OP(prs->tok->type == TOK_INT ? CMPI : CMPM, parse_operand(prs));
+    } else if (strcmp(id, "beq") == 0) {
+        assert_instr_in_text(prs, id, ln, col);
+        free(id);
+        return OP(BEQ, parse_label(prs));
+    } else if (strcmp(id, "bne") == 0) {
+        assert_instr_in_text(prs, id, ln, col);
+        free(id);
+        return OP(BNE, parse_label(prs));
+    } else if (strcmp(id, "blt") == 0) {
+        assert_instr_in_text(prs, id, ln, col);
+        free(id);
+        return OP(BLT, parse_label(prs));
+    } else if (strcmp(id, "ble") == 0) {
+        assert_instr_in_text(prs, id, ln, col);
+        free(id);
+        return OP(BLE, parse_label(prs));
+    } else if (strcmp(id, "bgt") == 0) {
+        assert_instr_in_text(prs, id, ln, col);
+        free(id);
+        return OP(BGT, parse_label(prs));
+    } else if (strcmp(id, "bge") == 0) {
+        assert_instr_in_text(prs, id, ln, col);
+        free(id);
+        return OP(BGE, parse_label(prs));
     }
 
-    if (prs->flags & IN_FIRST_PASS) {
-        // Only show this error in the first pass because
-        // we don't want it to show twice.
-        fprintf(stderr, "%s:%zu:%zu: error: undefined identifier '%s'\n", prs->file, ln, col, id);
-        inc_errors();
+    // Assume any non-instruction and data identifier
+    // as a label.
+    return parse_label_decl(prs, id, ln, col);
+}
+
+Op parse_section_header(Parser *prs) {
+    const size_t ln = prs->tok->ln;
+    const size_t col = prs->tok->col;
+    eat(prs, TOK_DOT);
+
+    // TODO: Should we allow for sections to be redefined?
+
+    if (strcmp(prs->tok->value, "text") == 0) {
+        if (text_initialized) {
+            fprintf(stderr, "%s:%zu:%zu: error: redefinition of text section\n", prs->file, ln, col);
+            inc_errors();
+        } else
+            text_initialized = true;
+
+        in_text = true;
+        eat(prs, TOK_ID);
+        return parse_stmt(prs);
+    } else if (strcmp(prs->tok->value, "data") == 0) {
+        if (data_initialized) {
+            fprintf(stderr, "%s:%zu:%zu: error: redefinition of data section\n", prs->file, ln, col);
+            inc_errors();
+        } else
+            data_initialized = true;
+
+        in_text = false;
+        eat(prs, TOK_ID);
+        return parse_stmt(prs);
     }
 
-    free(id);
-    return NOOP;
+    fprintf(stderr, "%s:%zu:%zu: error: invalid section '%s'\n", prs->file, ln, col, prs->tok->value);
+    inc_errors();
+    eat(prs, TOK_ID);
+    return parse_stmt(prs);
 }
 
 Op parse_stmt(Parser *prs) {
@@ -388,6 +484,8 @@ Op parse_stmt(Parser *prs) {
 
     switch (prs->tok->type) {
         case TOK_ID: return parse_id(prs);
+        case TOK_DOT: return parse_section_header(prs);
+        case TOK_EOF: return NOOP;
         default: break;
     }
 
@@ -397,46 +495,65 @@ Op parse_stmt(Parser *prs) {
     return NOOP;
 }
 
-Root parse_root(char *file) {
-    Parser prs = create_parser(file);
+void resolve_and_delete_labels() {
+    // EWWWWWWW gross!!
+    for (size_t i = 0; i < TABLE_SIZE && label_count > 0; i++) {
+        Label *label = &labels[i];
 
-    // We only care about adding labels to the table
-    // in the first pass, they only returns NOOPs,
-    // so we can just discard the return values.
-    while (prs.tok->type != TOK_EOF) {
-        // TOFIX: We're literally parsing twice. I don't like this.
-        // This will make larger programs compile even slower.
-        // But we do it so that labels can be used before they're
-        // defined and and know their position in memory.
-        // It'll do for now.
-        // Fuck.
-        parse_stmt(&prs);
-        op_count++;
-    }
+        if (!label->used)
+            continue;
 
-    // Now the second pass.
-    prs.tok = &prs.tokens[0];
-    prs.pos = 0;
-    prs.flags = 0;
+        // Check if the unresolved value of this label
+        // is used anywhere in the program.
+        for (size_t j = 0; j < root.op_count; j++) {
+            Op *op = &root.ops[j];
 
-    size_t op_capacity = STARTING_ROOT_CAP;
-    Op *ops = malloc(STARTING_ROOT_CAP * sizeof(Op));
-    op_count = 0;
+            if (op->operand == label->value) {
+                if (!label->resolved) {
+                    fprintf(stderr, "%s:%zu:%zu: error: undefined label '%s'\n", label->file, label->ln, label->col, label->name);
+                    inc_errors();
+                    break;
+                }
 
-    while (prs.tok->type != TOK_EOF) {
-        Op stmt = parse_stmt(&prs);
-
-        if (op_count + 1 >= op_capacity) {
-            op_capacity *= 2;
-            ops = realloc(ops, op_capacity * sizeof(Op));
+                op->operand = label->resolved_value;
+            }
         }
 
-        ops[op_count++] = stmt;
+        free(label->name);
+        free(label->file);
+        label_count--;
+    }
+}
+
+void root_push(Op stmt) {
+    if (root.op_count + 1 >= root.op_capacity) {
+        root.op_capacity *= 2;
+        root.ops = realloc(root.ops, root.op_capacity * sizeof(Op));
     }
 
+    root.ops[root.op_count++] = stmt;
+}
+
+Root parse_root(char *file) {
+    // Just in case we're compiling multiple times and
+    // global variables are messed up.
+    text_initialized = data_initialized = in_text = false;
+    label_count = 0;
+
+    Parser prs = create_parser(file);
+    root = (Root){ .ops = malloc(STARTING_ROOT_CAP * sizeof(Op)), .op_count = 0, .op_capacity = STARTING_ROOT_CAP };
+
+    while (prs.tok->type != TOK_EOF)
+        root_push(parse_stmt(&prs));
+
+    resolve_and_delete_labels();
     delete_parser(&prs);
-    delete_labels();
-    return (Root){ .ops = ops, .op_count = op_count };
+
+    if (root.op_count == 0)
+        // Just don't do anything.
+        root_push(OP(HLT, 0));
+
+    return root;
 }
 
 void delete_root(Root *root) {

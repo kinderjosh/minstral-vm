@@ -332,7 +332,6 @@ static Token lex_char(Lexer *lex) {
     return (Token){ .type = TOK_INT, .value = value, .ln = lex->ln, .col = col };
 }
 
-/*
 static Token lex_string(Lexer *lex) {
     size_t ln = lex->ln;
     size_t col = lex->col;
@@ -369,9 +368,8 @@ static Token lex_string(Lexer *lex) {
     value[len] = '\0';
 
     if (lex->cur != '"') {
-        log_error(lex->file, ln, col);
-        fprintf(stderr, "unclosed string literal\n");
-        show_error(ERR_UNCLOSED_CONST, lex->file, ln, col);
+        fprintf(stderr, "%s:%zu:%zu: error: unclosed string literal\n", lex->file, ln, col);
+        inc_errors();
     } else
         step(lex);
 
@@ -392,7 +390,6 @@ static Token lex_string(Lexer *lex) {
 
     return (Token){ .type = TOK_STRING, .value = value, .ln = ln, .col = col };
 }
-*/
 
 Token lex_next_token(Lexer *lex) {
     while (isspace(lex->cur) && lex->cur != '\n')
@@ -408,12 +405,13 @@ Token lex_next_token(Lexer *lex) {
         return lex_digit(lex);
     else if (lex->cur == '\'')
         return lex_char(lex);
-    //else if (lex->cur == '"')
-      //  return lex_string(lex);
+    else if (lex->cur == '"')
+        return lex_string(lex);
 
     switch (lex->cur) {
         case '\0': return create_token(TOK_EOF, mystrdup("eof"), lex->ln, lex->col);
         case ':': return create_and_step(lex, TOK_COLON, ":");
+        case '.': return create_and_step(lex, TOK_DOT, ".");
         default: break;
     }
 

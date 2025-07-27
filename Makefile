@@ -1,5 +1,5 @@
 CC = gcc
-EXEC = monovm
+EXEC = minstral
 SRCS = $(wildcard src/*.c)
 
 DEBUG ?= 0

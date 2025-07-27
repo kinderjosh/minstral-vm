@@ -1,0 +1,7 @@
+; program that prints Hi
+
+.text
+prc 'H' ; print H
+prc 'i' ; print i
+prc '\n' ; print new line
+hlt ; stop execution

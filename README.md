@@ -1,29 +1,29 @@
-# Mono VM
+# Minstral VM
 
-Mono VM is a 64-bit virtual machine, assembler and disassembler.
+Minstral (short for Minimal Instruction Translator) contains a virtual machine, assembler and disassembler.
 
 ## Installation
 
 All you need is ```gcc``` and ```make```, then clone the repository and run the makefile:
 
 ```bash
-git clone https://github.com/kinderjosh/mono-vm.git
-cd mono-vm
+git clone https://github.com/kinderjosh/minstral-vm.git
+cd minstral-vm
 make
 ```
 
 ## Usage
 
 ```
-./monovm <command> [options] <input file>
+./minstral <command> [options] <input file>
 ```
 
 ### Commands
 
-- ```asm``` - Assembles a basic machine code file.
-- ```dis``` - Disassembles a basic machine code file.
-- ```exe``` - Executes a basic machine code file.
-- ```run``` - Assembles and executes a basic machine code file.
+- ```asm``` - Assemble a machine code file.
+- ```dis``` - Disassemble a machine code file.
+- ```exe``` - Execute a machine code file.
+- ```run``` - Assemble and execute a machine code file.
 
 ### Options
 
@@ -37,7 +37,7 @@ make
 
 Use the ```asm``` command to convert an assembly file to a machine code file.
 
-> [examples/hi.mn](./examples/hi.mn):
+> [examples/hi.min](./examples/hi.min):
 
 ```asm
 ; simple program that prints "Hi"
@@ -51,7 +51,7 @@ hlt ; stop execution
 Assemble it:
 
 ```console
-$ ./monovm asm examples/hi.mn
+$ ./minstral asm examples/hi.min
 ```
 
 a.out:
@@ -67,10 +67,10 @@ Use the ```dis``` command to convert a machine code file to an assembly file.
 (Using the same example from above):
 
 ```console
-$ ./monovm dis a.out
+$ ./minstral dis a.out
 ```
 
-a.dis.mn:
+dis.min:
 
 ```asm
 prc 72
@@ -86,7 +86,7 @@ Use the ```exe``` command to execute a machine code file.
 (Using the same example from above):
 
 ```console
-$ ./monovm exe a.out
+$ ./minstral exe a.out
 Hi
 ```
 
@@ -95,7 +95,7 @@ Hi
 You can assemble and execute an assembly file at once with the ```run``` command.
 
 ```console
-$ ./monovm run examples/hi.mn
+$ ./minstral run examples/hi.min
 Hi
 ```
 
@@ -109,4 +109,4 @@ Wiki in progress.
 
 ## License
 
-Mono VM is distributed under the [BSD 3-Clause](./LICENSE) license.
+Minstral is distributed under the [BSD 3-Clause](./LICENSE) license.

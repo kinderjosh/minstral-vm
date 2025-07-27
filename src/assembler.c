@@ -47,7 +47,9 @@ int assemble(char *infile, char *outfile, bool linebreak_after_ops, bool as_deci
             strcat(code, " ");
     }
 
-    code[strlen(code) - 1] = '\0'; // Remove the last space or line break.
+    if (code[0] != '\0')
+        code[strlen(code) - 1] = '\0'; // Remove the last space or line break.
+
     delete_root(&root);
 
     fputs(code, f);
