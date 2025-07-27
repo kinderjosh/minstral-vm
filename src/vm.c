@@ -250,6 +250,18 @@ static void execute(VM *vm) {
             if (vm->cf || vm->zf)
                 vm->pc = vm->mdr;
             break;
+        case INCA:
+            vm->acc++;
+            break;
+        case INCM:
+            vm->data[vm->mdr] += 1;
+            break;
+        case DECA:
+            vm->acc--;
+            break;
+        case DECM:
+            vm->data[vm->mdr] -= 1;
+            break;
         default:
             fprintf(stderr, "vm: error: undefined instruction %" PRIu64 "\n", (u64)vm->cir);
             kill(vm);
@@ -337,6 +349,10 @@ char *opcode_to_string(Opcode opcode) {
         case BLE: return "ble";
         case BGT: return "bgt";
         case BGE: return "bge";
+        case INCA:
+        case INCM: return "inc";
+        case DECA:
+        case DECM: return "dec";
         default: break;
     }
 

@@ -485,6 +485,22 @@ Op parse_id(Parser *prs) {
         free(id);
         root_push(OP(LDM, subroutine_ret_address));
         return OP(BRAA, 0);
+    } else if (strcmp(id, "inc") == 0) {
+        assert_instr_in_text(prs, id, ln, col);
+        free(id);
+
+        if (prs->tok->type == TOK_EOL || prs->tok->type == TOK_EOF)
+            return OP(INCA, 0);
+
+        return OP(INCM, parse_label(prs));
+    } else if (strcmp(id, "dec") == 0) {
+        assert_instr_in_text(prs, id, ln, col);
+        free(id);
+
+        if (prs->tok->type == TOK_EOL || prs->tok->type == TOK_EOF)
+            return OP(DECA, 0);
+
+        return OP(DECM, parse_label(prs));
     }
 
     // Assume any non-instruction and data identifier

@@ -65,7 +65,11 @@ typedef enum {
     BLE,
     BGT,
     BGE,
-    CSR
+    CSR,
+    INCA,
+    INCM,
+    DECA,
+    DECM
 } Opcode;
 
 typedef int64_t i64;
