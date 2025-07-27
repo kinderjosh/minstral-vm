@@ -42,6 +42,7 @@ Use the ```asm``` command to convert an assembly file to a machine code file.
 ```asm
 ; simple program that prints "Hi"
 
+.text
 prc 'H' ; print character H
 prc 'i' ; print character i
 prc '\n' ; print a new line
