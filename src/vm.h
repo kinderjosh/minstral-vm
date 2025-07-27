@@ -64,7 +64,8 @@ typedef enum {
     BLT,
     BLE,
     BGT,
-    BGE
+    BGE,
+    CSR
 } Opcode;
 
 typedef int64_t i64;

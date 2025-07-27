@@ -29,6 +29,7 @@ typedef struct {
     i64 resolved_value; // After we know where in memory the label is.
     bool resolved;
     bool used;
+    bool is_subroutine;
     char *file;
     size_t ln;
     size_t col;
@@ -40,8 +41,18 @@ static size_t label_count = 0;
 static bool text_initialized = false;
 static bool data_initialized = false;
 static bool in_text = false;
+static i64 subroutine_ret_address = 0;
 
 static Root root;
+
+void root_push(Op stmt) {
+    if (root.op_count + 1 >= root.op_capacity) {
+        root.op_capacity *= 2;
+        root.ops = realloc(root.ops, root.op_capacity * sizeof(Op));
+    }
+
+    root.ops[root.op_count++] = stmt;
+}
 
 uint32_t hash_FNV1a(const char *data, size_t size) {
     uint32_t h = 2166136261UL;
@@ -153,7 +164,7 @@ i64 parse_digit(Parser *prs) {
 
 Op parse_label_decl(Parser *prs, char *id, size_t ln, size_t col) {
     // Data label outside of the data section.
-    if (prs->tok->type != TOK_EOL && !data_initialized) {
+    if (prs->tok->type != TOK_EOL && strcmp(prs->tok->value, "dsr") != 0 && !data_initialized) {
         fprintf(stderr, "%s:%zu:%zu: error: defining data label '%s' outside of the data section\n", prs->file, ln, col, id);
         free(id);
         return NOOP;
@@ -183,7 +194,17 @@ Op parse_label_decl(Parser *prs, char *id, size_t ln, size_t col) {
             label->resolved_value = root.op_count;
         }
 
-        if (strcmp(prs->tok->value, "dat") != 0) {
+        if (strcmp(prs->tok->value, "dsr") == 0) {
+            free(id);
+            eat(prs, TOK_ID);
+
+            label->is_subroutine = true;
+            subroutine_ret_address = label->resolved_value;
+            root_push(NOOP);
+
+            // Store the return address.
+            return OP(STM, subroutine_ret_address);
+        } else if (strcmp(prs->tok->value, "dat") != 0) {
             free(id);
             return NOOP;
         }
@@ -203,6 +224,15 @@ Op parse_label_decl(Parser *prs, char *id, size_t ln, size_t col) {
 
     // Parse a branch label, only allowed in the text section.
     if (in_text) {
+        if (strcmp(prs->tok->value, "dsr") == 0) {
+            eat(prs, TOK_ID);
+            label = add_label(id, root.op_count, mystrdup(prs->file), ln, col);
+            label->resolved = true;
+            label->resolved_value = label->value;
+            label->is_subroutine = true;
+            return NOOP;
+        }
+
         label = add_label(id, root.op_count, mystrdup(prs->file), ln, col);
         label->resolved = true;
         label->resolved_value = root.op_count;
@@ -436,6 +466,25 @@ Op parse_id(Parser *prs) {
         assert_instr_in_text(prs, id, ln, col);
         free(id);
         return OP(BGE, parse_label(prs));
+    } else if (strcmp(id, "csr") == 0) {
+        assert_instr_in_text(prs, id, ln, col);
+        free(id);
+
+        // We want to load the accumulator with the return address
+        // so that the subroutine can immediately store it in the
+        // NOP data where the label is defined.
+        // This way, the subroutine knows where to branch back to
+        // when it finds the RSR instruction.
+        // The return address will be the instruction after CSR.
+        // TOFIX: Will this break shit if there's no instruction after CSR?
+
+        root_push(OP(LDI, root.op_count + 2));
+        return OP(CSR, parse_label(prs));
+    } else if (strcmp(id, "rsr") == 0) {
+        assert_instr_in_text(prs, id, ln, col);
+        free(id);
+        root_push(OP(LDM, subroutine_ret_address));
+        return OP(BRAA, 0);
     }
 
     // Assume any non-instruction and data identifier
@@ -513,6 +562,10 @@ void resolve_and_delete_labels() {
                     fprintf(stderr, "%s:%zu:%zu: error: undefined label '%s'\n", label->file, label->ln, label->col, label->name);
                     inc_errors();
                     break;
+                } else if (op->opcode == CSR && !label->is_subroutine) {
+                    fprintf(stderr, "%s:%zu:%zu: error: calling non-subroutine '%s'\n", label->file, label->ln, label->col, label->name);
+                    inc_errors();
+                    break;
                 }
 
                 op->operand = label->resolved_value;
@@ -523,15 +576,6 @@ void resolve_and_delete_labels() {
         free(label->file);
         label_count--;
     }
-}
-
-void root_push(Op stmt) {
-    if (root.op_count + 1 >= root.op_capacity) {
-        root.op_capacity *= 2;
-        root.ops = realloc(root.ops, root.op_capacity * sizeof(Op));
-    }
-
-    root.ops[root.op_count++] = stmt;
 }
 
 Root parse_root(char *file) {

@@ -157,6 +157,7 @@ static void execute(VM *vm) {
         case NEG:
             vm->acc = -vm->acc;
             break;
+        case CSR:
         case BRA:
             vm->pc = vm->mdr;
             break;
@@ -314,6 +315,7 @@ char *opcode_to_string(Opcode opcode) {
         case NOT: return "not";
         case NEG: return "neg";
         case BRAA:
+        case CSR:
         case BRA: return "bra";
         case BRZ: return "brz";
         case BRP: return "brp";

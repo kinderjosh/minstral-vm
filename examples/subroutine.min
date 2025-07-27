@@ -1,0 +1,25 @@
+; program that creates a subroutine
+; to print Hi multiple times
+
+.text
+csr hi ; call the subroutine
+
+; calling subroutines destroys any value
+; in the accumulator
+lda 1000
+csr hi
+; 1000 is no longer there
+
+; call some more
+csr hi
+csr hi
+csr hi
+
+hlt
+
+hi dsr ; define a subroutine with DSR
+; print Hi
+prc 'H'
+prc 'i'
+prc '\n'
+rsr ; return from a subroutine with RSR
