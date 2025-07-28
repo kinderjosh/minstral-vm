@@ -100,7 +100,7 @@ static Token lex_id(Lexer *lex) {
     char *value = malloc(realloc_size);
     size_t len = 0;
 
-    while (isalnum(lex->cur) || lex->cur == '_') {
+    while (isalnum(lex->cur) || lex->cur == '_' || lex->cur == '@') {
         if (len + 2 >= realloc_size) {
             realloc_size *= 2;
             value = realloc(value, realloc_size);
