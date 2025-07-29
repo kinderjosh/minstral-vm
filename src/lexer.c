@@ -412,6 +412,7 @@ Token lex_next_token(Lexer *lex) {
         case '\0': return create_token(TOK_EOF, mystrdup("eof"), lex->ln, lex->col);
         case ':': return create_and_step(lex, TOK_COLON, ":");
         case '.': return create_and_step(lex, TOK_DOT, ".");
+        case '^': return create_and_step(lex, TOK_TOS, "^");
         default: break;
     }
 

@@ -3,30 +3,22 @@
 ; using reverse-polish notation on the stack
 
 .text
-; push 1 and 2
 psh 1
 psh 2
-; pop 1 and 2
-pop
-pop temp
-; add 2 to 1
-add temp
-; push result = 3
-psh
-; push 3
-psh 3
-; pop result = 3 and 3
-pop
-pop temp
-; multiple 3 by 3
-mul temp
-; push the result
-psh
-; pop into x
-pop x
 
-; print the result
-pri
+pop ; pop 2
+add ^ ; add 2 to 1 (1 is on top of the stack)
+drp ; drop 1 from the stack
+psh ; push result = 3
+
+psh 3
+pop ; pop 3
+mul ^ ; multiple 3 by result 3 on top of the stack
+drp ; drop 3 from the stack
+psh ; push the result
+pop x ; pop the total result into x
+
+pri ; print the result
 prc '\n'
 hlt
 

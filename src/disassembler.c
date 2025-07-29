@@ -22,7 +22,8 @@ void disassemble_op(char *buffer, Opcode opcode, i64 operand) {
         case PRIA:
         case NOT:
         case NEG:
-        case BRAA: break;
+        case BRAA:
+        case DRP: break;
         default: {
             strcat(buffer, " ");
 

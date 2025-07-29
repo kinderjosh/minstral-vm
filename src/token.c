@@ -22,6 +22,7 @@ char *tokentype_to_string(TokenType type) {
         case TOK_STRING: return "string";
         case TOK_COLON: return "colon";
         case TOK_DOT: return "dot";
+        case TOK_TOS: return "tos";
         default: break;
     }
 

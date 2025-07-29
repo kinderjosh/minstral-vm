@@ -7,6 +7,8 @@
 #include <inttypes.h>
 #include <assert.h>
 
+#define TOS vm->stack[vm->sp == 0 ? 0 : vm->sp - 1]
+
 VM *create_vm() {
     VM *vm = malloc(sizeof(VM));
     vm->acc = vm->pc = vm->mar = vm->cir = vm->mdr = vm->op_count = 0;
@@ -55,6 +57,20 @@ static void set_flags(VM *vm) {
     }
 }
 
+void assert_no_overflow(VM *vm) {
+    if (vm->sp == STACK_CAP) {
+        fprintf(stderr, "vm: error: stack overflow\n");
+        kill(vm);
+    }
+}
+
+void assert_no_underflow(VM *vm) {
+    if (vm->sp == 0) {
+        fprintf(stderr, "vm: error: stack underflow\n");
+        kill(vm);
+    }
+}
+
 // TODO: This is really gross and we should implement
 // tail calling like tuxifan said.
 static void execute(VM *vm) {
@@ -70,8 +86,14 @@ static void execute(VM *vm) {
         case LDM:
             vm->acc = vm->data[vm->mdr];
             break;
+        case LDAS:
+            vm->acc = TOS;
+            break;
         case STM:
             vm->data[vm->mdr] = vm->acc;
+            break;
+        case STAS:
+            TOS = vm->acc;
             break;
         case PRCI:
             fputc((char)vm->mdr, stdout);
@@ -82,6 +104,9 @@ static void execute(VM *vm) {
         case PRCA:
             fputc((char)vm->acc, stdout);
             break;
+        case PRCS:
+            fputc((char)TOS, stdout);
+            break;
         case PRII:
             fprintf(stdout, "%" PRId64, vm->mdr);
             break;
@@ -91,11 +116,17 @@ static void execute(VM *vm) {
         case PRIA:
             fprintf(stdout, "%" PRId64, vm->acc);
             break;
+        case PRIS:
+            fprintf(stdout, "%" PRId64, TOS);
+            break;
         case ADDI:
             vm->acc += vm->mdr;
             break;
         case ADDM:
             vm->acc += vm->data[vm->mdr];
+            break;
+        case ADDS:
+            vm->acc += TOS;
             break;
         case SUBI:
             vm->acc -= vm->mdr;
@@ -103,11 +134,17 @@ static void execute(VM *vm) {
         case SUBM:
             vm->acc -= vm->data[vm->mdr];
             break;
+        case SUBS:
+            vm->acc -= TOS;
+            break;
         case MULI:
             vm->acc *= vm->mdr;
             break;
         case MULM:
             vm->acc *= vm->data[vm->mdr];
+            break;
+        case MULS:
+            vm->acc *= TOS;
             break;
         case DIVI:
             vm->acc /= vm->mdr;
@@ -115,11 +152,17 @@ static void execute(VM *vm) {
         case DIVM:
             vm->acc /= vm->data[vm->mdr];
             break;
+        case DIVS:
+            vm->acc /= TOS;
+            break;
         case MODI:
             vm->acc %= vm->mdr;
             break;
         case MODM:
             vm->acc %= vm->data[vm->mdr];
+            break;
+        case MODS:
+            vm->acc %= TOS;
             break;
         case SHLI:
             vm->acc <<= vm->mdr;
@@ -127,11 +170,17 @@ static void execute(VM *vm) {
         case SHLM:
             vm->acc <<= vm->data[vm->mdr];
             break;
+        case SHLS:
+            vm->acc <<= TOS;
+            break;
         case SHRI:
             vm->acc >>= vm->mdr;
             break;
         case SHRM:
             vm->acc >>= vm->data[vm->mdr];
+            break;
+        case SHRS:
+            vm->acc >>= TOS;
             break;
         case ANDI:
             vm->acc &= vm->mdr;
@@ -139,11 +188,17 @@ static void execute(VM *vm) {
         case ANDM:
             vm->acc &= vm->data[vm->mdr];
             break;
+        case ANDS:
+            vm->acc &= TOS;
+            break;
         case ORI:
             vm->acc |= vm->mdr;
             break;
         case ORM:
             vm->acc |= vm->data[vm->mdr];
+            break;
+        case ORS:
+            vm->acc |= TOS;
             break;
         case XORI:
             vm->acc ^= vm->mdr;
@@ -151,11 +206,26 @@ static void execute(VM *vm) {
         case XORM:
             vm->acc ^= vm->data[vm->mdr];
             break;
+        case XORS:
+            vm->acc ^= TOS;
+            break;
         case NOT:
             vm->acc = !vm->acc;
             break;
+        case NOTM:
+            vm->data[vm->mdr] = !vm->data[vm->mdr];
+            break;
+        case NOTS:
+            TOS = !TOS;
+            break;
         case NEG:
             vm->acc = -vm->acc;
+            break;
+        case NEGM:
+            vm->data[vm->mdr] = -vm->data[vm->mdr];
+            break;
+        case NEGS:
+            TOS = -TOS;
             break;
         case CSR:
         case BRA:
@@ -190,6 +260,13 @@ static void execute(VM *vm) {
             vm->data[vm->mdr] = buffer[0];
             break;
         }
+        case RDCS: {
+            char buffer[4];
+            fgets(buffer, 3, stdin);
+            buffer[strlen(buffer) - 1] = '\0'; // Remove newline.
+            TOS = buffer[0];
+            break;
+        }
         case RDIA: {
             char buffer[32];
             fgets(buffer, 31, stdin);
@@ -206,8 +283,19 @@ static void execute(VM *vm) {
             vm->data[vm->mdr] = atoi(buffer);
             break;
         }
+        case RDIS: {
+            char buffer[32];
+            fgets(buffer, 31, stdin);
+            buffer[strlen(buffer) - 1] = '\0'; // Remove newline.
+
+            TOS = atoi(buffer);
+            break;
+        }
         case REFM:
             vm->acc = vm->mdr;
+            break;
+        case REFS:
+            vm->acc = TOS;
             break;
         case LDDA:
             vm->acc = vm->data[vm->acc];
@@ -215,8 +303,14 @@ static void execute(VM *vm) {
         case LDDM:
             vm->acc = vm->data[vm->data[vm->mdr]];
             break;
+        case LDDS:
+            vm->acc = vm->stack[TOS];
+            break;
         case STDM:
             vm->data[vm->data[vm->mdr]] = vm->acc;
+            break;
+        case STDS:
+            vm->stack[TOS] = vm->acc;
             break;
         case CMPI:
             vm->acc = llabs(vm->acc) - llabs(vm->mdr);
@@ -224,6 +318,10 @@ static void execute(VM *vm) {
             break;
         case CMPM:
             vm->acc = llabs(vm->acc) - llabs(vm->data[vm->mdr]);
+            set_flags(vm);
+            break;
+        case CMPS:
+            vm->acc = llabs(vm->acc) - llabs(TOS);
             set_flags(vm);
             break;
         case BEQ:
@@ -256,51 +354,45 @@ static void execute(VM *vm) {
         case INCM:
             vm->data[vm->mdr] += 1;
             break;
+        case INCS:
+            TOS += 1;
+            break;
         case DECA:
             vm->acc--;
             break;
         case DECM:
             vm->data[vm->mdr] -= 1;
             break;
+        case DECS:
+            TOS -= 1;
+            break;
         case PSHA:
-            if ((size_t)vm->sp >= STACK_CAP) {
-                fprintf(stderr, "vm: error: stack overflow\n");
-                kill(vm);
-            }
-
+            assert_no_overflow(vm);
             vm->stack[vm->sp++] = vm->acc;
             break;
         case PSHI:
-            if ((size_t)vm->sp >= STACK_CAP) {
-                fprintf(stderr, "vm: error: stack overflow\n");
-                kill(vm);
-            }
-
+            assert_no_overflow(vm);
             vm->stack[vm->sp++] = vm->mdr;
             break;
         case PSHM:
-            if ((size_t)vm->sp >= STACK_CAP) {
-                fprintf(stderr, "vm: error: stack overflow\n");
-                kill(vm);
-            }
-
+            assert_no_overflow(vm);
             vm->stack[vm->sp++] = vm->data[vm->mdr];
             break;
+        case PSHS:
+            assert_no_overflow(vm);
+            vm->stack[vm->sp] = TOS;
+            vm->sp++;
+            break;
         case POPA:
-            if (vm->sp == 0) {
-                fprintf(stderr, "vm: error: stack underflow\n");
-                kill(vm);
-            }
-
+            assert_no_underflow(vm);
             vm->acc = vm->stack[--vm->sp];
             break;
         case POPM:
-            if (vm->sp == 0) {
-                fprintf(stderr, "vm: error: stack underflow\n");
-                kill(vm);
-            }
-
+            assert_no_underflow(vm);
             vm->data[vm->mdr] = vm->stack[--vm->sp];
+            break;
+        case DRP:
+            vm->sp--;
             break;
         default:
             fprintf(stderr, "vm: error: undefined instruction %" PRIu64 "\n", (u64)vm->cir);

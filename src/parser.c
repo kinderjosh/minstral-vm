@@ -313,10 +313,18 @@ Op parse_id(Parser *prs) {
     } else if (strcmp(id, "lda") == 0) {
         assert_instr_in_text(prs, id, ln, col);
         free(id);
+
+        if (prs->tok->type == TOK_TOS)
+            return OP(LDAS, 0);
+
         return OP(prs->tok->type == TOK_INT ? LDI : LDM, parse_operand(prs));
     } else if (strcmp(id, "sta") == 0) {
         assert_instr_in_text(prs, id, ln, col);
         free(id);
+
+        if (prs->tok->type == TOK_TOS)
+            return OP(STAS, 0);
+
         return OP(STM, parse_label(prs));
     } else if (strcmp(id, "prc") == 0) {
         assert_instr_in_text(prs, id, ln, col);
@@ -326,6 +334,8 @@ Op parse_id(Parser *prs) {
             return OP(PRCA, 0);
         else if (prs->tok->type == TOK_INT)
             return OP(PRCI, parse_digit(prs));
+        else if (prs->tok->type == TOK_TOS)
+            return OP(PRCS, 0);
 
         return OP(PRCM, parse_label(prs));
     } else if (strcmp(id, "pri") == 0) {
@@ -336,56 +346,110 @@ Op parse_id(Parser *prs) {
             return OP(PRIA, 0);
         else if (prs->tok->type == TOK_INT)
             return OP(PRII, parse_digit(prs));
+        else if (prs->tok->type == TOK_TOS)
+            return OP(PRIS, 0);
 
         return OP(PRIM, parse_label(prs));
     } else if (strcmp(id, "add") == 0) {
         assert_instr_in_text(prs, id, ln, col);
         free(id);
+
+        if (prs->tok->type == TOK_TOS)
+            return OP(ADDS, 0);
+
         return OP(prs->tok->type == TOK_INT ? ADDI : ADDM, parse_operand(prs));
     } else if (strcmp(id, "sub") == 0) {
         assert_instr_in_text(prs, id, ln, col);
         free(id);
+
+        if (prs->tok->type == TOK_TOS)
+            return OP(SUBS, 0);
+
         return OP(prs->tok->type == TOK_INT ? SUBI : SUBM, parse_operand(prs));
     } else if (strcmp(id, "mul") == 0) {
         assert_instr_in_text(prs, id, ln, col);
         free(id);
+
+        if (prs->tok->type == TOK_TOS)
+            return OP(MULS, 0);
+
         return OP(prs->tok->type == TOK_INT ? MULI : MULM, parse_operand(prs));
     } else if (strcmp(id, "div") == 0) {
         assert_instr_in_text(prs, id, ln, col);
         free(id);
+
+        if (prs->tok->type == TOK_TOS)
+            return OP(DIVS, 0);
+
         return OP(prs->tok->type == TOK_INT ? DIVI : DIVM, parse_operand(prs));
     } else if (strcmp(id, "mod") == 0) {
         assert_instr_in_text(prs, id, ln, col);
         free(id);
+
+        if (prs->tok->type == TOK_TOS)
+            return OP(MODS, 0);
+
         return OP(prs->tok->type == TOK_INT ? MODI : MODM, parse_operand(prs));
     } else if (strcmp(id, "shl") == 0) {
         assert_instr_in_text(prs, id, ln, col);
         free(id);
+
+        if (prs->tok->type == TOK_TOS)
+            return OP(SHLS, 0);
+
         return OP(prs->tok->type == TOK_INT ? SHLI : SHLM, parse_operand(prs));
     } else if (strcmp(id, "shr") == 0) {
         assert_instr_in_text(prs, id, ln, col);
         free(id);
+
+        if (prs->tok->type == TOK_TOS)
+            return OP(SHRS, 0);
+
         return OP(prs->tok->type == TOK_INT ? SHRI : SHRM, parse_operand(prs));
     } else if (strcmp(id, "and") == 0) {
         assert_instr_in_text(prs, id, ln, col);
         free(id);
+
+        if (prs->tok->type == TOK_TOS)
+            return OP(ANDS, 0);
+
         return OP(prs->tok->type == TOK_INT ? ANDI : ANDM, parse_operand(prs));
     } else if (strcmp(id, "or") == 0) {
         assert_instr_in_text(prs, id, ln, col);
         free(id);
+
+        if (prs->tok->type == TOK_TOS)
+            return OP(ORS, 0);
+
         return OP(prs->tok->type == TOK_INT ? ORI : ORM, parse_operand(prs));
     } else if (strcmp(id, "xor") == 0) {
         assert_instr_in_text(prs, id, ln, col);
         free(id);
+
+        if (prs->tok->type == TOK_TOS)
+            return OP(XORS, 0);
+
         return OP(prs->tok->type == TOK_INT ? XORI : XORM, parse_operand(prs));
     } else if (strcmp(id, "not") == 0) {
         assert_instr_in_text(prs, id, ln, col);
         free(id);
-        return OP(NOT, 0);
+
+        if (prs->tok->type == TOK_EOL || prs->tok->type == TOK_EOF)
+            return OP(NOT, 0);
+        else if (prs->tok->type == TOK_TOS)
+            return OP(NOTS, 0);
+
+        return OP(NOTM, parse_label(prs));
     } else if (strcmp(id, "neg") == 0) {
         assert_instr_in_text(prs, id, ln, col);
         free(id);
-        return OP(NEG, 0);
+
+        if (prs->tok->type == TOK_EOL || prs->tok->type == TOK_EOF)
+            return OP(NEG, 0);
+        else if (prs->tok->type == TOK_TOS)
+            return OP(NOTS, 0);
+
+        return OP(NEGM, parse_label(prs));
     } else if (strcmp(id, "jmp") == 0) {
         assert_instr_in_text(prs, id, ln, col);
         free(id);
@@ -412,6 +476,8 @@ Op parse_id(Parser *prs) {
 
         if (prs->tok->type == TOK_EOL || prs->tok->type == TOK_EOF)
             return OP(RDCA, 0);
+        else if (prs->tok->type == TOK_TOS)
+            return OP(RDCS, 0);
 
         return OP(RDCM, parse_label(prs));
     } else if (strcmp(id, "rdi") == 0) {
@@ -420,11 +486,17 @@ Op parse_id(Parser *prs) {
 
         if (prs->tok->type == TOK_EOL || prs->tok->type == TOK_EOF)
             return OP(RDIA, 0);
+        else if (prs->tok->type == TOK_TOS)
+            return OP(RDIS, 0);
 
         return OP(RDIM, parse_label(prs));
     } else if (strcmp(id, "ref") == 0) {
         assert_instr_in_text(prs, id, ln, col);
         free(id);
+
+        if (prs->tok->type == TOK_TOS)
+            return OP(REFS, 0);
+
         return OP(REFM, parse_label(prs));
     } else if (strcmp(id, "ldd") == 0) {
         assert_instr_in_text(prs, id, ln, col);
@@ -432,15 +504,25 @@ Op parse_id(Parser *prs) {
 
         if (prs->tok->type == TOK_EOL || prs->tok->type == TOK_EOF)
             return OP(LDDA, 0);
+        else if (prs->tok->type == TOK_TOS)
+            return OP(LDDS, 0);
 
         return OP(LDDM, parse_label(prs));
     } else if (strcmp(id, "std") == 0) {
         assert_instr_in_text(prs, id, ln, col);
         free(id);
+
+        if (prs->tok->type == TOK_TOS)
+            return OP(STDS, 0);
+
         return OP(STDM, parse_label(prs));
     } else if (strcmp(id, "cmp") == 0) {
         assert_instr_in_text(prs, id, ln, col);
         free(id);
+
+        if (prs->tok->type == TOK_TOS)
+            return OP(CMPS, 0);
+
         return OP(prs->tok->type == TOK_INT ? CMPI : CMPM, parse_operand(prs));
     } else if (strcmp(id, "beq") == 0) {
         assert_instr_in_text(prs, id, ln, col);
@@ -491,6 +573,8 @@ Op parse_id(Parser *prs) {
 
         if (prs->tok->type == TOK_EOL || prs->tok->type == TOK_EOF)
             return OP(INCA, 0);
+        else if (prs->tok->type == TOK_TOS)
+            return OP(INCS, 0);
 
         return OP(INCM, parse_label(prs));
     } else if (strcmp(id, "dec") == 0) {
@@ -499,22 +583,32 @@ Op parse_id(Parser *prs) {
 
         if (prs->tok->type == TOK_EOL || prs->tok->type == TOK_EOF)
             return OP(DECA, 0);
+        else if (prs->tok->type == TOK_TOS)
+            return OP(DECS, 0);
 
         return OP(DECM, parse_label(prs));
     } else if (strcmp(id, "psh") == 0) {
+        assert_instr_in_text(prs, id, ln, col);
         free(id);
 
         if (prs->tok->type == TOK_EOL || prs->tok->type == TOK_EOF)
             return OP(PSHA, 0);
+        else if (prs->tok->type == TOK_TOS)
+            return OP(PSHS, 0);
 
         return OP(prs->tok->type == TOK_INT ? PSHI : PSHM, parse_operand(prs));
     } else if (strcmp(id, "pop") == 0) {
+        assert_instr_in_text(prs, id, ln, col);
         free(id);
 
         if (prs->tok->type == TOK_EOL || prs->tok->type == TOK_EOF)
             return OP(POPA, 0);
 
         return OP(POPM, parse_label(prs));
+    } else if (strcmp(id, "drp") == 0) {
+        assert_instr_in_text(prs, id, ln, col);
+        free(id);
+        return OP(DRP, 0);
     }
 
     // Assume any non-instruction and data identifier
@@ -558,8 +652,8 @@ Op parse_section_header(Parser *prs) {
 }
 
 Op parse_stmt(Parser *prs) {
-    while (prs->tok->type == TOK_EOL)
-        eat(prs, TOK_EOL);
+    while (prs->tok->type == TOK_EOL || prs->tok->type == TOK_TOS)
+        eat(prs, prs->tok->type);
 
     switch (prs->tok->type) {
         case TOK_ID: return parse_id(prs);
