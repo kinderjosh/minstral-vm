@@ -4,18 +4,18 @@ Minstral (short for Minimal Instruction Translator) contains a virtual machine, 
 
 ## Installation
 
-All you need is ```gcc``` and ```make```, then clone the repository and run the makefile:
+All you need is ```gcc``` and ```make```, then clone the repository and run the makefile as root:
 
 ```bash
 git clone https://github.com/kinderjosh/minstral-vm.git
 cd minstral-vm
-make
+sudo make install
 ```
 
 ## Usage
 
 ```
-./minstral <command> [options] <input file>
+minstral <command> [options] <input file>
 ```
 
 ### Commands
@@ -52,7 +52,7 @@ hlt ; stop execution
 Assemble it:
 
 ```console
-$ ./minstral asm examples/hi.min
+$ minstral asm examples/hi.min
 ```
 
 a.out:
@@ -68,7 +68,7 @@ Use the ```dis``` command to convert a machine code file to an assembly file.
 (Using the same example from above):
 
 ```console
-$ ./minstral dis a.out
+$ minstral dis a.out
 ```
 
 dis.min:
@@ -87,7 +87,7 @@ Use the ```exe``` command to execute a machine code file.
 (Using the same example from above):
 
 ```console
-$ ./minstral exe a.out
+$ minstral exe a.out
 Hi
 ```
 
@@ -96,7 +96,7 @@ Hi
 You can assemble and execute an assembly file at once with the ```run``` command.
 
 ```console
-$ ./minstral run examples/hi.min
+$ minstral run examples/hi.min
 Hi
 ```
 

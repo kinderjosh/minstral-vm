@@ -262,6 +262,46 @@ static void execute(VM *vm) {
         case DECM:
             vm->data[vm->mdr] -= 1;
             break;
+        case PSHA:
+            if ((size_t)vm->sp >= STACK_CAP) {
+                fprintf(stderr, "vm: error: stack overflow\n");
+                kill(vm);
+            }
+
+            vm->stack[vm->sp++] = vm->acc;
+            break;
+        case PSHI:
+            if ((size_t)vm->sp >= STACK_CAP) {
+                fprintf(stderr, "vm: error: stack overflow\n");
+                kill(vm);
+            }
+
+            vm->stack[vm->sp++] = vm->mdr;
+            break;
+        case PSHM:
+            if ((size_t)vm->sp >= STACK_CAP) {
+                fprintf(stderr, "vm: error: stack overflow\n");
+                kill(vm);
+            }
+
+            vm->stack[vm->sp++] = vm->data[vm->mdr];
+            break;
+        case POPA:
+            if (vm->sp == 0) {
+                fprintf(stderr, "vm: error: stack underflow\n");
+                kill(vm);
+            }
+
+            vm->acc = vm->stack[--vm->sp];
+            break;
+        case POPM:
+            if (vm->sp == 0) {
+                fprintf(stderr, "vm: error: stack underflow\n");
+                kill(vm);
+            }
+
+            vm->data[vm->mdr] = vm->stack[--vm->sp];
+            break;
         default:
             fprintf(stderr, "vm: error: undefined instruction %" PRIu64 "\n", (u64)vm->cir);
             kill(vm);
@@ -353,6 +393,11 @@ char *opcode_to_string(Opcode opcode) {
         case INCM: return "inc";
         case DECA:
         case DECM: return "dec";
+        case PSHA:
+        case PSHI:
+        case PSHM: return "psh";
+        case POPA:
+        case POPM: return "pop";
         default: break;
     }
 

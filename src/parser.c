@@ -501,6 +501,20 @@ Op parse_id(Parser *prs) {
             return OP(DECA, 0);
 
         return OP(DECM, parse_label(prs));
+    } else if (strcmp(id, "psh") == 0) {
+        free(id);
+
+        if (prs->tok->type == TOK_EOL || prs->tok->type == TOK_EOF)
+            return OP(PSHA, 0);
+
+        return OP(prs->tok->type == TOK_INT ? PSHI : PSHM, parse_operand(prs));
+    } else if (strcmp(id, "pop") == 0) {
+        free(id);
+
+        if (prs->tok->type == TOK_EOL || prs->tok->type == TOK_EOF)
+            return OP(POPA, 0);
+
+        return OP(POPM, parse_label(prs));
     }
 
     // Assume any non-instruction and data identifier

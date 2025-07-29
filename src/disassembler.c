@@ -49,6 +49,11 @@ void disassemble_op(char *buffer, Opcode opcode, i64 operand) {
                 case REFM:
                 case LDDM:
                 case STDM:
+                case CMPM:
+                case INCM:
+                case DECM:
+                case PSHM:
+                case POPM:
                     sprintf(operand_buffer, "[%" PRId64 "]", operand);
                     break;
                 default:

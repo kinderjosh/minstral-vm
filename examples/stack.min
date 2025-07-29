@@ -1,0 +1,35 @@
+; program that computes the equation:
+; (1 + 2) * 3
+; using reverse-polish notation on the stack
+
+.text
+; push 1 and 2
+psh 1
+psh 2
+; pop 1 and 2
+pop
+pop temp
+; add 2 to 1
+add temp
+; push result = 3
+psh
+; push 3
+psh 3
+; pop result = 3 and 3
+pop
+pop temp
+; multiple 3 by 3
+mul temp
+; push the result
+psh
+; pop into x
+pop x
+
+; print the result
+pri
+prc '\n'
+hlt
+
+.data
+x dat 0
+temp dat 0

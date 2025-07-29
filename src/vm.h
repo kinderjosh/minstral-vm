@@ -9,6 +9,9 @@
 // * 2 due to 2 separate memories, so really it's 16KiB.
 #define MEMORY_CAP (size_t)1024
 
+// 128 * 8 due to int64_t = 1024
+#define STACK_CAP (size_t)128
+
 typedef enum {
     NOP,
     HLT,
@@ -69,7 +72,12 @@ typedef enum {
     INCA,
     INCM,
     DECA,
-    DECM
+    DECM,
+    PSHA,
+    PSHI,
+    PSHM,
+    POPA,
+    POPM
 } Opcode;
 
 typedef int64_t i64;
@@ -89,6 +97,9 @@ typedef struct {
     bool cf;
     bool zf;
     bool nf;
+
+    i64 stack[STACK_CAP];
+    i64 sp;
 
     bool running;
 } VM;
