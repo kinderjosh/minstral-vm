@@ -24,3 +24,10 @@ $(EXEC): $(SRCS)
 
 clean:
 	rm -f ./$(EXEC)
+
+install: all
+	cp ./$(EXEC) /usr/local/bin/
+
+uninstall:
+	rm -f /usr/local/bin/$(EXEC)
+	rm -rf /usr/local/share/$(EXEC)
