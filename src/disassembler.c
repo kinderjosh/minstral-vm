@@ -23,13 +23,16 @@ void disassemble_op(char *buffer, Opcode opcode, i64 operand) {
         case NOT:
         case NEG:
         case BRAA:
-        case DRP: break;
+        case DRP:
+        case PSHA:
+        case POPA: break;
         default: {
             strcat(buffer, " ");
 
             char operand_buffer[BUFFER_CAP];
 
             // Add [] to indicate a memory access.
+            // Add ^ to indicate a top of stack access.
             switch (opcode) {
                 case LDM:
                 case STM:
@@ -45,6 +48,8 @@ void disassemble_op(char *buffer, Opcode opcode, i64 operand) {
                 case ANDM:
                 case ORM:
                 case XORM:
+                case NEGM:
+                case NOTM:
                 case RDCM:
                 case RDIM:
                 case REFM:
@@ -56,6 +61,33 @@ void disassemble_op(char *buffer, Opcode opcode, i64 operand) {
                 case PSHM:
                 case POPM:
                     sprintf(operand_buffer, "[%" PRId64 "]", operand);
+                    break;
+                case LDAS:
+                case STAS:
+                case PRCS:
+                case PRIS:
+                case ADDS:
+                case SUBS:
+                case MULS:
+                case DIVS:
+                case MODS:
+                case SHLS:
+                case SHRS:
+                case ANDS:
+                case ORS:
+                case XORS:
+                case NOTS:
+                case NEGS:
+                case RDCS:
+                case RDIS:
+                case REFS:
+                case LDDS:
+                case STDS:
+                case CMPS:
+                case INCS:
+                case DECS:
+                case PSHS:
+                    strcpy(operand_buffer, "^");
                     break;
                 default:
                     sprintf(operand_buffer, "%" PRId64, operand);

@@ -428,35 +428,53 @@ char *opcode_to_string(Opcode opcode) {
         case NOP: return "nop";
         case HLT: return "hlt";
         case LDI:
+        case LDAS:
         case LDM: return "lda";
+        case STAS:
         case STM: return "sta";
         case PRCI:
         case PRCM:
+        case PRCS:
         case PRCA: return "prc";
         case PRII:
         case PRIM:
+        case PRIS:
         case PRIA: return "pri";
         case ADDI:
+        case ADDS:
         case ADDM: return "add";
         case SUBI:
+        case SUBS:
         case SUBM: return "sub";
         case MULI:
+        case MULS:
         case MULM: return "mul";
         case DIVI:
+        case DIVS:
         case DIVM: return "div";
         case MODI:
+        case MODS:
         case MODM: return "mod";
         case SHLI:
+        case SHLS:
         case SHLM: return "shl";
         case SHRI:
+        case SHRS:
         case SHRM: return "shr";
         case ANDI:
+        case ANDS:
         case ANDM: return "and";
         case ORI:
+        case ORS:
         case ORM: return "or";
         case XORI:
+        case XORS:
         case XORM: return "xor";
+        case NOTS:
+        case NOTM:
         case NOT: return "not";
+        case NEGM:
+        case NEGS:
         case NEG: return "neg";
         case BRAA:
         case CSR:
@@ -465,15 +483,21 @@ char *opcode_to_string(Opcode opcode) {
         case BRP: return "brp";
         case BRN: return "brp";
         case RDCA:
+        case RDCS:
         case RDCM: return "rdc";
         case RDIA:
+        case RDIS:
         case RDIM: return "rdi";
+        case REFS:
         case REFM: return "ref";
         case LDDA:
+        case LDDS:
         case LDDM: return "ldd";
+        case STDS:
         case STDM: return "std";
         case DAT: return "dat";
         case CMPI:
+        case CMPS:
         case CMPM: return "cmp";
         case BEQ: return "beq";
         case BNE: return "bne";
@@ -482,17 +506,22 @@ char *opcode_to_string(Opcode opcode) {
         case BGT: return "bgt";
         case BGE: return "bge";
         case INCA:
+        case INCS:
         case INCM: return "inc";
         case DECA:
+        case DECS:
         case DECM: return "dec";
         case PSHA:
         case PSHI:
+        case PSHS:
         case PSHM: return "psh";
         case POPA:
         case POPM: return "pop";
+        case DRP: return "drp";
         default: break;
     }
 
+    printf(">>>>%u\n", opcode);
     assert(false);
     return "undefined";
 }
