@@ -609,6 +609,106 @@ Op parse_id(Parser *prs) {
         assert_instr_in_text(prs, id, ln, col);
         free(id);
         return OP(DRP, 0);
+    } else if (strcmp(id, "swp") == 0) {
+        assert_instr_in_text(prs, id, ln, col);
+        free(id);
+
+        if (prs->tok->type == TOK_EOL || prs->tok->type == TOK_EOF)
+            return OP(SWPS, 0);
+        else if (prs->tok->type == TOK_TOS)
+            return OP(SWPS, 0);
+
+        return OP(SWPM, parse_label(prs));
+    } else if (strcmp(id, "sez") == 0) {
+        assert_instr_in_text(prs, id, ln, col);
+        free(id);
+
+        if (prs->tok->type == TOK_EOL || prs->tok->type == TOK_EOF)
+            return OP(SEZA, 0);
+        else if (prs->tok->type == TOK_TOS)
+            return OP(SEZS, 0);
+
+        return OP(SEZM, parse_label(prs));
+    } else if (strcmp(id, "sep") == 0) {
+        assert_instr_in_text(prs, id, ln, col);
+        free(id);
+
+        if (prs->tok->type == TOK_EOL || prs->tok->type == TOK_EOF)
+            return OP(SEPA, 0);
+        else if (prs->tok->type == TOK_TOS)
+            return OP(SEPS, 0);
+
+        return OP(SEPM, parse_label(prs));
+    } else if (strcmp(id, "sen") == 0) {
+        assert_instr_in_text(prs, id, ln, col);
+        free(id);
+
+        if (prs->tok->type == TOK_EOL || prs->tok->type == TOK_EOF)
+            return OP(SENA, 0);
+        else if (prs->tok->type == TOK_TOS)
+            return OP(SENS, 0);
+
+        return OP(SENM, parse_label(prs));
+    } else if (strcmp(id, "seq") == 0) {
+        assert_instr_in_text(prs, id, ln, col);
+        free(id);
+
+        if (prs->tok->type == TOK_EOL || prs->tok->type == TOK_EOF)
+            return OP(SEQA, 0);
+        else if (prs->tok->type == TOK_TOS)
+            return OP(SEQS, 0);
+
+        return OP(SEQM, parse_label(prs));
+    } else if (strcmp(id, "sne") == 0) {
+        assert_instr_in_text(prs, id, ln, col);
+        free(id);
+
+        if (prs->tok->type == TOK_EOL || prs->tok->type == TOK_EOF)
+            return OP(SNEA, 0);
+        else if (prs->tok->type == TOK_TOS)
+            return OP(SNES, 0);
+
+        return OP(SNEM, parse_label(prs));
+    } else if (strcmp(id, "slt") == 0) {
+        assert_instr_in_text(prs, id, ln, col);
+        free(id);
+
+        if (prs->tok->type == TOK_EOL || prs->tok->type == TOK_EOF)
+            return OP(SLTA, 0);
+        else if (prs->tok->type == TOK_TOS)
+            return OP(SLTS, 0);
+
+        return OP(SLTM, parse_label(prs));
+    } else if (strcmp(id, "sle") == 0) {
+        assert_instr_in_text(prs, id, ln, col);
+        free(id);
+
+        if (prs->tok->type == TOK_EOL || prs->tok->type == TOK_EOF)
+            return OP(SLEA, 0);
+        else if (prs->tok->type == TOK_TOS)
+            return OP(SLES, 0);
+
+        return OP(SLEM, parse_label(prs));
+    } else if (strcmp(id, "sgt") == 0) {
+        assert_instr_in_text(prs, id, ln, col);
+        free(id);
+
+        if (prs->tok->type == TOK_EOL || prs->tok->type == TOK_EOF)
+            return OP(SGTA, 0);
+        else if (prs->tok->type == TOK_TOS)
+            return OP(SGTS, 0);
+
+        return OP(SGTM, parse_label(prs));
+    } else if (strcmp(id, "sge") == 0) {
+        assert_instr_in_text(prs, id, ln, col);
+        free(id);
+
+        if (prs->tok->type == TOK_EOL || prs->tok->type == TOK_EOF)
+            return OP(SGEA, 0);
+        else if (prs->tok->type == TOK_TOS)
+            return OP(SGES, 0);
+
+        return OP(SGEM, parse_label(prs));
     }
 
     // Assume any non-instruction and data identifier

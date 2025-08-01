@@ -394,6 +394,81 @@ static void execute(VM *vm) {
         case DRP:
             vm->sp--;
             break;
+        case SWPM: {
+            i64 temp = vm->acc;
+            vm->acc = vm->data[vm->mdr];
+            vm->data[vm->mdr] = temp;
+            break;
+        }
+        case SWPS: {
+            i64 temp = vm->acc;
+            vm->acc = TOS;
+            TOS = temp;
+            break;
+        }
+        case SEZA:
+        case SEQA:
+            vm->acc = vm->zf ? 1 : 0;
+            break;
+        case SEZM:
+        case SEQM:
+            vm->data[vm->mdr] = vm->zf ? 1 : 0;
+            break;
+        case SEQS:
+        case SEZS:
+            TOS = vm->zf ? 1 : 0;
+            break;
+        case SNEA:
+            vm->acc = vm->zf ? 0 : 1;
+            break;
+        case SNEM:
+            vm->data[vm->mdr] = vm->zf ? 0 : 1;
+            break;
+        case SNES:
+            TOS = vm->zf ? 0 : 1;
+            break;
+        case SEPA:
+        case SLTA:
+            vm->acc = vm->cf ? 1 : 0;
+            break;
+        case SEPM:
+        case SLTM:
+            vm->data[vm->mdr] = vm->cf ? 1 : 0;
+            break;
+        case SEPS:
+        case SLTS:
+            TOS = vm->cf ? 1 : 0;
+            break;
+        case SENA:
+        case SGTA:
+            vm->acc = vm->nf ? 1 : 0;
+            break;
+        case SENM:
+        case SGTM:
+            vm->data[vm->mdr] = vm->nf ? 1 : 0;
+            break;
+        case SENS:
+        case SGTS:
+            TOS = vm->nf ? 1 : 0;
+            break;
+        case SLEA:
+            vm->acc = vm->cf || vm->zf ? 1 : 0;
+            break;
+        case SLEM:
+            vm->data[vm->mdr] = vm->cf || vm->zf ? 1 : 0;
+            break;
+        case SLES:
+            TOS = vm->cf || vm->zf ? 1 : 0;
+            break;
+        case SGEA:
+            vm->acc = vm->nf || vm->zf ? 1 : 0;
+            break;
+        case SGEM:
+            vm->data[vm->mdr] = vm->nf || vm->zf ? 1 : 0;
+            break;
+        case SGES:
+            TOS = vm->nf || vm->zf ? 1 : 0;
+            break;
         default:
             fprintf(stderr, "vm: error: undefined instruction %" PRIu64 "\n", (u64)vm->cir);
             kill(vm);
@@ -518,6 +593,35 @@ char *opcode_to_string(Opcode opcode) {
         case POPA:
         case POPM: return "pop";
         case DRP: return "drp";
+        case SWPM:
+        case SWPS: return "swp";
+        case SEZA:
+        case SEZM:
+        case SEZS: return "sez";
+        case SEPA:
+        case SEPM:
+        case SEPS: return "sep";
+        case SENA:
+        case SENM:
+        case SENS: return "sen";
+        case SEQA:
+        case SEQM:
+        case SEQS: return "seq";
+        case SNEA:
+        case SNEM:
+        case SNES: return "sne";
+        case SLTA:
+        case SLTM:
+        case SLTS: return "slt";
+        case SLEA:
+        case SLEM:
+        case SLES: return "sle";
+        case SGTA:
+        case SGTM:
+        case SGTS: return "sgt";
+        case SGEA:
+        case SGEM:
+        case SGES: return "sge";
         default: break;
     }
 

@@ -25,7 +25,16 @@ void disassemble_op(char *buffer, Opcode opcode, i64 operand) {
         case BRAA:
         case DRP:
         case PSHA:
-        case POPA: break;
+        case POPA:
+        case SEZA:
+        case SEPA:
+        case SENA:
+        case SEQA:
+        case SNEA:
+        case SLTA:
+        case SLEA:
+        case SGTA:
+        case SGEA: break;
         default: {
             strcat(buffer, " ");
 
@@ -60,6 +69,13 @@ void disassemble_op(char *buffer, Opcode opcode, i64 operand) {
                 case DECM:
                 case PSHM:
                 case POPM:
+                case SWPM:
+                case SEQM:
+                case SNEM:
+                case SLTM:
+                case SLEM:
+                case SGTM:
+                case SGEM:
                     sprintf(operand_buffer, "[%" PRId64 "]", operand);
                     break;
                 case LDAS:
@@ -87,6 +103,16 @@ void disassemble_op(char *buffer, Opcode opcode, i64 operand) {
                 case INCS:
                 case DECS:
                 case PSHS:
+                case SWPS:
+                case SEZS:
+                case SEPS:
+                case SENS:
+                case SEQS:
+                case SNES:
+                case SLTS:
+                case SLES:
+                case SGTS:
+                case SGES:
                     strcpy(operand_buffer, "^");
                     break;
                 default:
