@@ -20,16 +20,20 @@ minstral <command> [options] <input file>
 
 ### Commands
 
-- ```asm``` - Assemble a machine code file.
-- ```dis``` - Disassemble a machine code file.
-- ```exe``` - Execute a machine code file.
-- ```run``` - Assemble and execute a machine code file.
+| Name | Description |
+| --- | --- |
+| asm | Assemble a machine code file. |
+| dis | Disassemble a machine code file. |
+| exe | Execute a machine code file. |
+| run | Assemble and execute a machine code file. |
 
 ### Options
 
-- ```-decimal``` - Output decimal machine code.
-- ```-linebreak``` - Output linebreaks in machine code.
-- ```-o <output file>``` - Specify the output filename.
+| Name | Description |
+| --- | --- |
+| -decimal | Output decimal machine code. |
+| -linebreak | Output linebreaks in machine code. |
+| -o ```<output file>``` | Specify the output filename. |
 
 ## Examples
 
@@ -106,7 +110,7 @@ Syntax highlighting for VSCode is available in the [editor](./editor/) directory
 
 ## Documentation
 
-Wiki in progress.
+See the [manual](https://github.com/kinderjosh/minstral-vm/wiki).
 
 ## License
 
