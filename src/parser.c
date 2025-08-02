@@ -17,7 +17,7 @@
 
 #define STARTING_TOK_CAP 32
 #define STARTING_ROOT_CAP 16
-#define TABLE_SIZE 1000
+#define TABLE_SIZE 10000
 
 // Give each unresolved label a unique number so they
 // can be resolved to their correct locations later.
