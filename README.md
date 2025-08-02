@@ -31,7 +31,6 @@ minstral <command> [options] <input file>
 
 | Name | Description |
 | --- | --- |
-| -decimal | Output decimal machine code. |
 | -linebreak | Output linebreaks in machine code. |
 | -o ```<output file>``` | Specify the output filename. |
 
@@ -62,7 +61,7 @@ $ minstral asm examples/hi.min
 a.out:
 
 ```asm
-101 1001000 101 1101001 101 1010 1 0
+7 72 7 105 7 10 1 0
 ```
 
 ### Disassembling

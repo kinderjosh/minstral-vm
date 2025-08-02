@@ -15,7 +15,7 @@ void help(char *prog) {
            "    exe               execute a machine code file\n"
            "    run               assemble a machine code file\n"
            "options:\n"
-           "    -decimal          output decimal machine code\n"
+           //"    -decimal          output decimal machine code\n"
            "    -linebreak        output linebreaks in machine code\n"
            "    -o <output file>  specify the output filename\n"
            , prog);
@@ -45,13 +45,13 @@ int main(int argc, char **argv) {
 
     char *infile = NULL;
     char *outfile = "a.out";
-    bool decimal = false;
+    bool decimal = true;
     bool linebreak = false;
 
     for (int i = 2; i < argc; i++) {
-        if (strcmp(argv[i], "-decimal") == 0)
-            decimal = true;
-        else if (strcmp(argv[i], "-linebreak") == 0)
+        //if (strcmp(argv[i], "-decimal") == 0)
+        //    decimal = true;
+        if (strcmp(argv[i], "-linebreak") == 0)
             linebreak = true;
         else if (strcmp(argv[i], "-o") == 0) {
             if (i == argc - 1) {
