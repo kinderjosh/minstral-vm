@@ -3,7 +3,7 @@ EXEC = minstral
 SRCS = $(wildcard src/*.c)
 
 DEBUG ?= 0
-CFLAGS = -Wall -Wextra -Wpedantic -Wno-missing-braces -std=c11 -march=native
+CFLAGS = -Wall -Wextra -Wpedantic -Wno-unusued-results -Wno-missing-braces -std=c11 -march=native
 
 ifeq ($(DEBUG),1)
 CFLAGS += -g -Wl,-z,now -Wl,-z,relro \

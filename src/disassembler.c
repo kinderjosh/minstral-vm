@@ -163,7 +163,7 @@ int disassemble(char *infile, char *outfile) {
     const size_t len = strlen(src);
     bool is_binary = true;
     i64 opcode;
-    i64 operand;
+    i64 operand = 0;
     int mode = 2;
     size_t i = 0;
 
