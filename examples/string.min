@@ -1,0 +1,19 @@
+.text
+ref ask ; reference the output string
+ops ; output the string
+ips name ; input the string, newline not included
+
+; now greet the user with their name
+ref hello
+ops
+ref name
+ops
+
+opc '\n' ; newline
+
+hlt
+
+.data
+ask dat "What is your name? " ; all strings are null-terminated
+hello dat "Hello, "
+name res 32 ; reserve 32 characters for the name

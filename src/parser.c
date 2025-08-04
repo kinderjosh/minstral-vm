@@ -211,7 +211,56 @@ Op parse_label_decl(Parser *prs, char *id, size_t ln, size_t col) {
 
         eat(prs, TOK_ID);
 
-        if (prs->tok->type != TOK_INT) {
+        if (prs->tok->type == TOK_STRING) {
+            // Define each character in a sequence in memory, add a null character too.
+            const size_t len = strlen(prs->tok->value);
+
+            for (size_t i = 0; i < len; i++) {
+                char c = prs->tok->value[i];
+                int value = 0;
+
+                if (c == '\\') {
+                    c = prs->tok->value[++i];
+
+                    switch (c) {
+                        case 'n':
+                            value = 10;
+                            break;
+                        case 't':
+                            value = 9;
+                            break;
+                        case 'r':
+                            value = 13;
+                            break;
+                        case '0':
+                            value = 0;
+                            break;
+                        case '\'':
+                        case '"':
+                        case '\\':
+                            value = (int)c;
+                            break;
+                        default:
+                            fprintf(stderr, "%s:%zu:%zu: error: unsupported escape sequence '\\%c'\n", prs->file, prs->tok->ln, prs->tok->col, c);
+                            inc_errors();
+                            assert(false);
+                            break;
+                    }
+                } else
+                    value = (int)c;
+
+                root_push(OP(DAT, (i64)value));
+            }
+
+            eat(prs, TOK_STRING);
+            free(id);
+
+            // Yeah uhhh, WHY THE FUCK DOES THIS WORK WITHOUT THIS??
+            // Adding this causes a table collision. Ah fuck it.
+            //add_label(id, 0, mystrdup(prs->file), ln, col);
+
+            return OP(DAT, 0); // Null char.
+        } else if (prs->tok->type != TOK_INT) {
             fprintf(stderr, "%s:%zu:%zu: error: expected constant data value for label '%s' but found '%s'\n", prs->file, ln, col, id, tokentype_to_string(prs->tok->type));
             inc_errors();
             add_label(id, 0, mystrdup(prs->file), ln, col);
@@ -255,7 +304,51 @@ Op parse_label_decl(Parser *prs, char *id, size_t ln, size_t col) {
 
     eat(prs, TOK_ID);
 
-    if (prs->tok->type != TOK_INT) {
+    if (prs->tok->type == TOK_STRING) {
+        // Define each character in a sequence in memory, add a null character too.
+        const size_t len = strlen(prs->tok->value);
+
+        for (size_t i = 0; i < len; i++) {
+            char c = prs->tok->value[i];
+            int value = 0;
+
+            if (c == '\\') {
+                c = prs->tok->value[++i];
+
+                switch (c) {
+                    case 'n':
+                        value = 10;
+                        break;
+                    case 't':
+                        value = 9;
+                        break;
+                    case 'r':
+                        value = 13;
+                        break;
+                    case '0':
+                        value = 0;
+                        break;
+                    case '\'':
+                    case '"':
+                    case '\\':
+                        value = atoi(prs->tok->value);
+                        break;
+                    default:
+                        fprintf(stderr, "%s:%zu:%zu: error: unsupported escape sequence '\\%c'\n", prs->file, prs->tok->ln, prs->tok->col, c);
+                        inc_errors();
+                        assert(false);
+                        break;
+                }
+            } else
+                value = atoi(prs->tok->value);
+
+            root_push(OP(DAT, (i64)value));
+        }
+
+        add_label(id, UNRESOLVED_LABEL_LOCATION, mystrdup(prs->file), ln, col);
+        return OP(DAT, 0); // Null char.
+    } else if (prs->tok->type != TOK_INT) {
+        printf("??????? >> %d\n", prs->tok->type == TOK_STRING);
         fprintf(stderr, "%s:%zu:%zu: error: expected constant data value for label '%s' but found '%s'\n", prs->file, ln, col, id, tokentype_to_string(prs->tok->type));
         inc_errors();
         add_label(id, 0, mystrdup(prs->file), ln, col);
@@ -298,6 +391,59 @@ i64 parse_operand(Parser *prs) {
     return 0;
 }
 
+Op parse_ops() {
+    // The OPS instruction is actually an alias for a loop
+    // that repeats the OPC instruction until a null character is found.
+
+    // Store the pointer.
+    size_t pointer = root.op_count;
+    root_push(OP(STM, pointer));
+
+    // Start of the loop.
+    size_t loop_start = root.op_count;
+    root_push(NOOP);
+
+    // Load the next character.
+    root_push(OP(LDDM, pointer));
+
+    // Branch to the end of the loop if it's 0.
+    // We don't know the location of the end of the loop yet, we'll fill it in later.
+    size_t branch_zero = root.op_count;
+    root_push(OP(BRZ, 0));
+
+    // Print the character.
+    root_push(OP(PRCA, 0));
+
+    // Increment the pointer.
+    root_push(OP(LDM, pointer));
+    root_push(OP(ADDI, 1));
+    root_push(OP(STM, pointer));
+
+    // Jump back to the start of the loop.
+    root_push(OP(BRA, loop_start));
+
+    // End of the loop, fill in the last branch zero.
+    root.ops[branch_zero].operand = root.op_count;
+    return NOOP;
+}
+
+Op parse_res(Parser *prs) {
+    const size_t ln = prs->tok->col;
+    const size_t col = prs->tok->col;
+    i64 count = parse_digit(prs);
+
+    if (count < 1) {
+        fprintf(stderr, "%s:%zu:%zu: error: can only reserve minimum 1 data\n", prs->file, ln, col);
+        inc_errors();
+        return NOOP;
+    }
+
+    for (i64 i = 0; i < count - 1; i++)
+        root_push(OP(DAT, 0));
+
+    return OP(DAT, 0);
+}
+
 Op parse_id(Parser *prs) {
     const size_t ln = prs->tok->ln;
     const size_t col = prs->tok->col;
@@ -326,7 +472,7 @@ Op parse_id(Parser *prs) {
             return OP(STAS, 0);
 
         return OP(STM, parse_label(prs));
-    } else if (strcmp(id, "prc") == 0) {
+    } else if (strcmp(id, "opc") == 0) {
         assert_instr_in_text(prs, id, ln, col);
         free(id);
 
@@ -338,7 +484,7 @@ Op parse_id(Parser *prs) {
             return OP(PRCS, 0);
 
         return OP(PRCM, parse_label(prs));
-    } else if (strcmp(id, "pri") == 0) {
+    } else if (strcmp(id, "opi") == 0) {
         assert_instr_in_text(prs, id, ln, col);
         free(id);
 
@@ -470,7 +616,7 @@ Op parse_id(Parser *prs) {
         assert_instr_in_text(prs, id, ln, col);
         free(id);
         return OP(BRN, parse_operand(prs));
-    } else if (strcmp(id, "rdc") == 0) {
+    } else if (strcmp(id, "ipc") == 0) {
         assert_instr_in_text(prs, id, ln, col);
         free(id);
 
@@ -480,7 +626,7 @@ Op parse_id(Parser *prs) {
             return OP(RDCS, 0);
 
         return OP(RDCM, parse_label(prs));
-    } else if (strcmp(id, "rdi") == 0) {
+    } else if (strcmp(id, "ipi") == 0) {
         assert_instr_in_text(prs, id, ln, col);
         free(id);
 
@@ -709,6 +855,24 @@ Op parse_id(Parser *prs) {
             return OP(SGES, 0);
 
         return OP(SGEM, parse_label(prs));
+    }
+    // Unnamed data.
+    else if (strcmp(id, "dat") == 0) {
+        free(id);
+        return OP(DAT, parse_operand(prs));
+    }
+    // Instruction aliases.
+    else if (strcmp(id, "ops") == 0) {
+        assert_instr_in_text(prs, id, ln, col);
+        free(id);
+        return parse_ops();
+    } else if (strcmp(id, "ips") == 0) {
+        assert_instr_in_text(prs, id, ln, col);
+        free(id);
+        return OP(IPS, parse_label(prs));
+    } else if (strcmp(id, "res") == 0) {
+        free(id);
+        return parse_res(prs);
     }
 
     // Assume any non-instruction and data identifier

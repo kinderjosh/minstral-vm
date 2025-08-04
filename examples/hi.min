@@ -1,7 +1,7 @@
 ; program that prints Hi
 
 .text
-prc 'H' ; print H
-prc 'i' ; print i
-prc '\n' ; print new line
+opc 'H' ; print H
+opc 'i' ; print i
+opc '\n' ; print new line
 hlt ; stop execution

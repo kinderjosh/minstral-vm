@@ -18,8 +18,8 @@ drp ; drop 3 from the stack
 psh ; push the result
 pop x ; pop the total result into x
 
-pri ; print the result
-prc '\n'
+opi ; print the result
+opc '\n'
 hlt
 
 .data

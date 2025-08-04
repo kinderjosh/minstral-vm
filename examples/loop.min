@@ -8,9 +8,9 @@ lda loops ; load the loops
 brz done ; branch if 0
 
 ; print Hi
-prc 'H'
-prc 'i'
-prc '\n' ; print new line
+opc 'H'
+opc 'i'
+opc '\n' ; print new line
 
 dec loops ; decrement the loop counter
 jmp start ; next loop

@@ -2,14 +2,14 @@
 
 ; instructions go in the text section
 .text
-pri x ; print the value in x
-prc '\n'
+opi x ; print the value in x
+opc '\n'
 
 lda 10 ; load a new value
 sta x ; store it into x
 
-pri x ; print the new value of x
-prc '\n'
+opi x ; print the new value of x
+opc '\n'
 
 hlt
 

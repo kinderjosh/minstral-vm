@@ -134,7 +134,8 @@ typedef enum {
     SGTS,
     SGEA,
     SGEM,
-    SGES
+    SGES,
+    IPS
 } Opcode;
 
 typedef int64_t i64;

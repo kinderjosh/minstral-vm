@@ -3,23 +3,23 @@
 
 .text
 ; ask for the first number
-prc 'a'
-prc ':'
-prc ' '
-rdi a
+opc 'a'
+opc ':'
+opc ' '
+ipi a
 
 ; ask for the operator
-prc 'o'
-prc 'p'
-prc ':'
-prc ' '
-rdc op
+opc 'o'
+opc 'p'
+opc ':'
+opc ' '
+ipc op
 
 ; ask for the second number
-prc 'b'
-prc ':'
-prc ' '
-rdi b
+opc 'b'
+opc ':'
+opc ' '
+ipi b
 
 ; parse the operator and calculate the result
 lda op
@@ -43,13 +43,13 @@ cmp '%'
 beq op_mod
 
 ; unknown operator
-prc 'b'
-prc 'a'
-prc 'd'
-prc ' '
-prc 'o'
-prc 'p'
-prc '\n'
+opc 'b'
+opc 'a'
+opc 'd'
+opc ' '
+opc 'o'
+opc 'p'
+opc '\n'
 hlt
 
 ; c = a + b
@@ -99,25 +99,25 @@ jmp done
 
 ; catch a floating point exception
 zero_err
-prc 'z'
-prc 'e'
-prc 'r'
-prc 'o'
-prc ' '
-prc 'e'
-prc 'r'
-prc 'r'
-prc 'o'
-prc 'r'
-prc '\n'
+opc 'z'
+opc 'e'
+opc 'r'
+opc 'o'
+opc ' '
+opc 'e'
+opc 'r'
+opc 'r'
+opc 'o'
+opc 'r'
+opc '\n'
 hlt
 
 done
 ; print the result
-prc '='
-prc ' '
-pri c
-prc '\n'
+opc '='
+opc ' '
+opi c
+opc '\n'
 hlt
 
 .data

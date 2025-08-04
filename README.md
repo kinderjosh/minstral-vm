@@ -46,9 +46,9 @@ Use the ```asm``` command to convert an assembly file to a machine code file.
 ; simple program that prints "Hi"
 
 .text
-prc 'H' ; print character H
-prc 'i' ; print character i
-prc '\n' ; print a new line
+opc 'H' ; print character H
+opc 'i' ; print character i
+opc '\n' ; print a new line
 hlt ; stop execution
 ```
 
@@ -77,9 +77,9 @@ $ minstral dis a.out
 dis.min:
 
 ```asm
-prc 72
-prc 105
-prc 10
+opc 72
+opc 105
+opc 10
 hlt
 ```
 

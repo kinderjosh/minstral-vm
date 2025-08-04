@@ -469,6 +469,24 @@ static void execute(VM *vm) {
         case SGES:
             TOS = vm->nf || vm->zf ? 1 : 0;
             break;
+        case IPS: {
+            char buffer[128];
+            fgets(buffer, 127, stdin);
+            const size_t len = strlen(buffer);
+            size_t i;
+
+            for (i = 0; i < len && i < 127; i++) {
+                const char c = buffer[i];
+
+                if (c == '\n')
+                    break;
+
+                vm->data[vm->mdr + i] = c;
+            }
+
+            vm->data[vm->mdr + i] = '\0';
+            break;
+        }
         default:
             fprintf(stderr, "vm: error: undefined instruction %" PRIu64 "\n", (u64)vm->cir);
             kill(vm);
@@ -510,11 +528,11 @@ char *opcode_to_string(Opcode opcode) {
         case PRCI:
         case PRCM:
         case PRCS:
-        case PRCA: return "prc";
+        case PRCA: return "opc";
         case PRII:
         case PRIM:
         case PRIS:
-        case PRIA: return "pri";
+        case PRIA: return "opi";
         case ADDI:
         case ADDS:
         case ADDM: return "add";
@@ -559,10 +577,10 @@ char *opcode_to_string(Opcode opcode) {
         case BRN: return "brp";
         case RDCA:
         case RDCS:
-        case RDCM: return "rdc";
+        case RDCM: return "ipc";
         case RDIA:
         case RDIS:
-        case RDIM: return "rdi";
+        case RDIM: return "ipi";
         case REFS:
         case REFM: return "ref";
         case LDDA:
@@ -622,7 +640,7 @@ char *opcode_to_string(Opcode opcode) {
         case SGEA:
         case SGEM:
         case SGES: return "sge";
-        default: break;
+        case IPS: return "ips";
     }
 
     printf(">>>>%u\n", opcode);

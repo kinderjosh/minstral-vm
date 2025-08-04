@@ -19,7 +19,7 @@ hlt
 
 hi dsr ; define a subroutine with DSR
 ; print Hi
-prc 'H'
-prc 'i'
-prc '\n'
+opc 'H'
+opc 'i'
+opc '\n'
 rsr ; return from a subroutine with RSR
