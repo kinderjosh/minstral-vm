@@ -41,7 +41,6 @@ static size_t label_count = 0;
 static bool text_initialized = false;
 static bool data_initialized = false;
 static bool in_text = false;
-static i64 subroutine_ret_address = 0;
 
 static Root root;
 
@@ -199,11 +198,7 @@ Op parse_label_decl(Parser *prs, char *id, size_t ln, size_t col) {
             eat(prs, TOK_ID);
 
             label->is_subroutine = true;
-            subroutine_ret_address = label->resolved_value;
-            root_push(NOOP);
-
-            // Store the return address.
-            return OP(STM, subroutine_ret_address);
+            return NOOP;
         } else if (strcmp(prs->tok->value, "dat") != 0) {
             free(id);
             return NOOP;
@@ -391,33 +386,45 @@ i64 parse_operand(Parser *prs) {
     return 0;
 }
 
-Op parse_ops() {
+Op parse_ops(Parser *prs) {
     // The OPS instruction is actually an alias for a loop
-    // that repeats the OPC instruction until a null character is found.
+    // that repeats the OPC instruction until the length reaches 0.
 
     // Store the pointer.
     size_t pointer = root.op_count;
     root_push(OP(STM, pointer));
 
+    // Get and store the length.
+    root_push(OP(prs->tok->type == TOK_ID ? LDM : LDI, parse_operand(prs)));
+    size_t length = root.op_count;
+    root_push(OP(STM, root.op_count));
+
+    // Store the counter.
+    root_push(OP(LDI, 0));
+    size_t counter = root.op_count;
+    root_push(OP(STM, root.op_count));
+
     // Start of the loop.
     size_t loop_start = root.op_count;
     root_push(NOOP);
 
-    // Load the next character.
-    root_push(OP(LDDM, pointer));
-
-    // Branch to the end of the loop if it's 0.
+    // Load the length and branch to the end of the loop if it's 0.
     // We don't know the location of the end of the loop yet, we'll fill it in later.
+    root_push(OP(LDM, length));
     size_t branch_zero = root.op_count;
     root_push(OP(BRZ, 0));
+
+    // Load the next character.
+    root_push(OP(LDM, pointer));
+    root_push(OP(ADDM, counter));
+    root_push(OP(LDDA, 0));
 
     // Print the character.
     root_push(OP(PRCA, 0));
 
-    // Increment the pointer.
-    root_push(OP(LDM, pointer));
-    root_push(OP(ADDI, 1));
-    root_push(OP(STM, pointer));
+    // Decrement the length, increment the counter.
+    root_push(OP(INCM, counter));
+    root_push(OP(DECM, length));
 
     // Jump back to the start of the loop.
     root_push(OP(BRA, loop_start));
@@ -698,20 +705,19 @@ Op parse_id(Parser *prs) {
         assert_instr_in_text(prs, id, ln, col);
         free(id);
 
-        // We want to load the accumulator with the return address
-        // so that the subroutine can immediately store it in the
-        // NOP data where the label is defined.
+        // We want to push the return address
+        // so that the subroutine can pop it at the end.
         // This way, the subroutine knows where to branch back to
         // when it finds the RSR instruction.
         // The return address will be the instruction after CSR.
         // TOFIX: Will this break shit if there's no instruction after CSR?
 
-        root_push(OP(LDI, root.op_count + 2));
+        root_push(OP(PSHI, root.op_count + 2));
         return OP(CSR, parse_label(prs));
     } else if (strcmp(id, "rsr") == 0) {
         assert_instr_in_text(prs, id, ln, col);
         free(id);
-        root_push(OP(LDM, subroutine_ret_address));
+        root_push(OP(POPA, 0));
         return OP(BRAA, 0);
     } else if (strcmp(id, "inc") == 0) {
         assert_instr_in_text(prs, id, ln, col);
@@ -865,7 +871,7 @@ Op parse_id(Parser *prs) {
     else if (strcmp(id, "ops") == 0) {
         assert_instr_in_text(prs, id, ln, col);
         free(id);
-        return parse_ops();
+        return parse_ops(prs);
     } else if (strcmp(id, "ips") == 0) {
         assert_instr_in_text(prs, id, ln, col);
         free(id);

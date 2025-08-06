@@ -1,13 +1,13 @@
 .text
 ref ask ; reference the output string
-ops ; output the string
+ops 19 ; output the string
 ips name ; input the string, newline not included
 
 ; now greet the user with their name
 ref hello
-ops
+ops 7
 ref name
-ops
+ops 31
 
 opc '\n' ; newline
 
