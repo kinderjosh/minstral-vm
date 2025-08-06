@@ -15,7 +15,7 @@ sudo make install
 ## Usage
 
 ```
-minstral <command> [options] <input file>
+mas <command> [options] <input file>
 ```
 
 ### Commands
@@ -55,7 +55,7 @@ hlt ; stop execution
 Assemble it:
 
 ```console
-$ minstral asm examples/hi.min
+$ mas asm examples/hi.min
 ```
 
 a.out:
@@ -71,7 +71,7 @@ Use the ```dis``` command to convert a machine code file to an assembly file.
 (Using the same example from above):
 
 ```console
-$ minstral dis a.out
+$ mas dis a.out
 ```
 
 dis.min:
@@ -90,7 +90,7 @@ Use the ```exe``` command to execute a machine code file.
 (Using the same example from above):
 
 ```console
-$ minstral exe a.out
+$ mas exe a.out
 Hi
 ```
 
@@ -99,7 +99,7 @@ Hi
 You can assemble and execute an assembly file at once with the ```run``` command.
 
 ```console
-$ minstral run examples/hi.min
+$ mas run examples/hi.min
 Hi
 ```
 

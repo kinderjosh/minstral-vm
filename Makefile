@@ -1,5 +1,5 @@
 CC = gcc
-EXEC = minstral
+EXEC = mas
 SRCS = $(wildcard src/*.c)
 
 DEBUG ?= 0
